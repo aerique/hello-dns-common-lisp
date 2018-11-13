@@ -18,8 +18,8 @@
 (defvar *verbose* nil)
 
 
-;; Silence compiler about undefined functions.  (Common Lisp has many warts:
-;; this is one of them.)
+;; Silence compiler about undefined functions.
+;; (Common Lisp has many warts: this is one of them.)
 (defun int-to-16bit (a &key b) (declare (ignore a b)))
 (defun int-to-32bit (a &key b) (declare (ignore a b)))
 (defun serialize-question-section (a) (declare (ignore a)))
@@ -394,18 +394,10 @@
                           (1 :iquery)
                           (2 :status)
                           (otherwise nil))
-                :aa (if (= 0 (ash (logand (elt response 2) #b00000100) -2))
-                        nil
-                        t)
-                :tc (if (= 0 (ash (logand (elt response 2) #b00000010) -1))
-                        nil
-                        t)
-                :rd (if (= 0 (logand (elt response 2) #b00000001))
-                        nil
-                        t)
-                :ra (if (= 0 (ash (logand (elt response 3) #b10000000) -7))
-                        nil
-                        t)
+                :aa (= 0 (ash (logand (elt response 2) #b00000100) -2))
+                :tc (= 0 (ash (logand (elt response 2) #b00000010) -1))
+                :rd (= 0 (logand (elt response 2) #b00000001))
+                :ra (= 0 (ash (logand (elt response 3) #b10000000) -7))
                 :z (ash (logand (elt response 3) #b01110000) -4)
                 :rcode (case (logand (elt response 3) #b00001111)
                          (0 :noerror)
