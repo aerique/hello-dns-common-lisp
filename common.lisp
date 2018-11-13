@@ -18,54 +18,20 @@
 (defvar *verbose* nil)
 
 
+;; Silence compiler about undefined functions.  (Common Lisp has many warts:
+;; this is one of them.)
+(defun int-to-16bit (a &key b) (declare (ignore a b)))
+(defun int-to-32bit (a &key b) (declare (ignore a b)))
+(defun serialize-question-section (a) (declare (ignore a)))
+(defun serialize-resource-record (a) (declare (ignore a)))
+
+
 ;;; ## Handlers
 
 (defun user-interrupt (arg)
   (declare (ignore arg))
   (format t "~&User interrupt. Aborting...~%")
   (exit))
-
-
-;;; ## Functions
-
-;; ASH: arithmetic (binary) shift towards most significant bit
-;; XXX this hasn't actually been tested with anything else than 1
-(defun int-to-16bit (integer &key (big-endian t))
-  (if big-endian
-      (list (ash    integer -8)
-            (logand integer #b0000000011111111))
-      ;; little-endian
-      (list (logand integer #b0000000011111111)
-            (ash    integer -8))))
-
-
-;; XXX this hasn't actually been tested with anything else than 1
-(defun int-to-32bit (integer &key (big-endian t))
-  (if big-endian
-      (list (ash         integer                                     -24)
-            (ash (logand integer #b0000000011111111000000000000000)  -16)
-            (ash (logand integer #b00000000000000001111111100000000)  -8)
-                 (logand integer #b00000000000000000000000011111111))
-      ;; little-endian
-      (list      (logand integer #b00000000000000000000000011111111)
-            (ash (logand integer #b00000000000000001111111100000000)  -8)
-            (ash (logand integer #b0000000011111111000000000000000)  -16)
-            (ash         integer                                     -24))))
-
-
-(defun serialize-question-section (question-section)
-  (append (serialize (getf question-section :qname))
-          (int-to-16bit (dns-type (getf question-section :qtype)))
-          (int-to-16bit (dns-class (getf question-section :qclass)))))
-
-
-(defun serialize-resource-record (resource-record)
-  (append (serialize (getf resource-record :name))
-          (int-to-16bit (dns-type (getf resource-record :type)))
-          (int-to-16bit (dns-class (getf resource-record :class)))
-          (int-to-32bit (getf resource-record :ttl))
-          (int-to-16bit (getf resource-record :rdlength))
-          (coerce (getf resource-record :rdata) 'list)))
 
 
 ;;; ## System Class Methods
@@ -401,6 +367,46 @@
 
 
 ;;; Functions
+
+;; ASH: arithmetic (binary) shift towards most significant bit
+;; XXX this hasn't actually been tested with anything else than 1
+(defun int-to-16bit (integer &key (big-endian t))
+  (if big-endian
+      (list (ash    integer -8)
+            (logand integer #b0000000011111111))
+      ;; little-endian
+      (list (logand integer #b0000000011111111)
+            (ash    integer -8))))
+
+
+;; XXX this hasn't actually been tested with anything else than 1
+(defun int-to-32bit (integer &key (big-endian t))
+  (if big-endian
+      (list (ash         integer                                     -24)
+            (ash (logand integer #b0000000011111111000000000000000)  -16)
+            (ash (logand integer #b00000000000000001111111100000000)  -8)
+                 (logand integer #b00000000000000000000000011111111))
+      ;; little-endian
+      (list      (logand integer #b00000000000000000000000011111111)
+            (ash (logand integer #b00000000000000001111111100000000)  -8)
+            (ash (logand integer #b0000000011111111000000000000000)  -16)
+            (ash         integer                                     -24))))
+
+
+(defun serialize-question-section (question-section)
+  (append (serialize (getf question-section :qname))
+          (int-to-16bit (dns-type (getf question-section :qtype)))
+          (int-to-16bit (dns-class (getf question-section :qclass)))))
+
+
+(defun serialize-resource-record (resource-record)
+  (append (serialize (getf resource-record :name))
+          (int-to-16bit (dns-type (getf resource-record :type)))
+          (int-to-16bit (dns-class (getf resource-record :class)))
+          (int-to-32bit (getf resource-record :ttl))
+          (int-to-16bit (getf resource-record :rdlength))
+          (coerce (getf resource-record :rdata) 'list)))
+
 
 (defun str2type (string)
   (dns-type (intern (string-upcase string) :keyword)))
