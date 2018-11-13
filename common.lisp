@@ -54,17 +54,6 @@
     (otherwise nil)))
 
 
-(defmethod dns-class ((class symbol))
-  (case class
-    (:in     1)
-    (:cs     2)  ; obsolete, sometimes used in examples
-    (:ch     3)
-    (:hs     4)
-    (:none 254)
-    (:any  255)
-    (otherwise (error "Unknown DNS class: ~S" class))))
-
-
 (defmethod dns-opcode ((opcode integer))
   (case opcode
     (0 :query)
@@ -72,23 +61,6 @@
     (4 :notify)
     (5 :update)
     (otherwise nil)))
-
-
-(defmacro dns-test-gen ()
-  (let ((items '((0 :query)
-                 (2 :status)
-                 (4 :notify)
-                 (5 :update))))
-    `(defmethod dns-test ((obj integer))
-       ,(append '(case obj)
-                (loop for item in items
-                      collect (list (first item) (second item)))
-                '((otherwise nil))))
-    `(defmethod dns-test ((obj symbol))
-       ,(append '(case obj)
-                (loop for item in items
-                      collect (list (second item) (first item)))
-                '((otherwise nil))))))
 
 
 (defmethod dns-test ((opcode integer))
@@ -179,57 +151,6 @@
     (  255 :any)
     ;; being explicit
     (otherwise nil)))
-
-
-(defmethod dns-type ((type symbol))
-  (case type
-    ;; resource records
-    (:a           1)
-    (:ns          2)
-    (:cname       5)
-    (:soa         6)
-    (:ptr        12)
-    (:mx         15)
-    (:txt        16)
-    (:rp         17)
-    (:afsdb      18)
-    (:sig        24)
-    (:key        25)
-    (:aaaa       28)
-    (:loc        29)
-    (:srv        33)
-    (:naptr      35)
-    (:kx         36)
-    (:cert       37)
-    (:dname      39)
-    (:apl        42)
-    (:ds         43)
-    (:sshfp      44)
-    (:ipseckey   45)
-    (:rrsig      46)
-    (:nsec       47)
-    (:dnskey     48)
-    (:dhcid      49)
-    (:nsec3      50)
-    (:nsec3param 51)
-    (:tlsa       52)
-    (:smimea     53)
-    (:hip        55)
-    (:cds        59)
-    (:cdnskey    60)
-    (:openpgpkey 61)
-    (:tkey      249)
-    (:tsig      250)
-    (:uri       256)
-    (:caa       257)
-    (:ta      32768)
-    (:dlv     32769)
-    ;; other types and pseudo resource records
-    (:opt        41)
-    (:ixfr      251)
-    (:axfr      252)
-    (:any       255)
-    (otherwise (error "Unknown DNS type: ~S" type))))
 
 
 ;;; ## Classes
