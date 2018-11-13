@@ -154,7 +154,110 @@
 
 
 ;;; ## Classes
+
+;;; ### dns-header
 ;;;
+;;; So, because we're in the `feature/do-not-convert-to-keywords` branch, we
+;;; cannot use `BOOLEAN` as a type but have to use `(INTEGER 0 1)` :-|
+;;;
+;;; Note: If *RANDOM-STATE* is not initialised then RANDOM output will be
+;;;       deterministic!
+;;;
+;;; (Note: SBCL will only trigger on invalid values if SAFETY is set to 3 (or
+;;; at least not at 0 :-D .)
+
+(defclass dns-header ()
+  ((id      :initarg :id      :reader id      :type (integer 0 65535)
+            :initform (random 65535))
+   (qr      :initarg :qr      :reader qr      :type (integer 0 1))
+   (opcode  :initarg :opcode  :reader opcode  :type (integer 0 15))
+   (aa      :initarg :aa      :reader aa      :type (integer 0 1))
+   (tc      :initarg :tc      :reader tc      :type (integer 0 1))
+   (rd      :initarg :rd      :reader rd      :type (integer 0 1))
+   (ra      :initarg :ra      :reader ra      :type (integer 0 1))
+   (z       :initarg :z       :reader z       :type (integer 0 7)
+            :initform 0)
+   (rcode   :initarg :rcode   :reader rcode   :type (integer 0 15))
+   (qdcount :initarg :qdcount :reader qdcount :type (integer 0 65535))
+   (ancount :initarg :ancount :reader ancount :type (integer 0 65535))
+   (nscount :initarg :nscount :reader nscount :type (integer 0 65535))
+   (arcount :initarg :arcount :reader arcount :type (integer 0 65535))))
+
+
+;; https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml
+(defmethod print-object ((obj dns-header) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "ID=~D QR=~A OPCODE=~A AA=~S TC=~S RD=~S RA=~S Z=~D ~
+                    RCODE=~A QDCOUNT=~D ANCOUNT=~D NSCOUNT=~D ARCOUNT=~D"
+            (id obj)
+            (if (= 0 (qr obj))
+                "QUERY"
+                "RESPONSE")
+            (case (opcode obj)
+              (0 "QUERY")
+              (1 "IQUERY")
+              (2 "STATUS")
+              (3 "Unassigned")
+              (4 "NOTIFY")
+              (5 "UPDATE")
+              (otherwise (format nil"Unassigned(~D)" (opcode obj))))
+            (= 1 (aa obj))
+            (= 1 (tc obj))
+            (= 1 (rd obj))
+            (= 1 (ra obj))
+            (z obj)
+            (case (rcode obj)
+              ( 0 "NoError")
+              ( 1 "FormatErr")
+              ( 2 "ServFail")
+              ( 3 "NXDomain")
+              ( 4 "NotImp")
+              ( 5 "Refused")
+              ( 6 "YXDomain")
+              ( 7 "YXRRSet")
+              ( 8 "NXRRSet")
+              ( 9 "NotAuth")
+              (10 "NotZone")
+              (otherwise (format nil "Unassigned(~D)" (rcode obj))))
+            (qdcount obj)
+            (ancount obj)
+            (nscount obj)
+            (arcount obj))))
+
+
+(defmethod serialize ((obj dns-header))
+  (append (int-to-16bit (id obj))
+          (list (+ (if (= 1 (qr obj)) 128 0)
+                   (ash (opcode obj) 3)
+                   (if (= 1 (aa obj))   4 0)
+                   (if (= 1 (tc obj))   2 0)
+                   (rd obj)))
+          (list (+ (if (= 1 (ra obj)) 128 0)
+                   (ash (z obj) 4)
+                   (rcode obj)))
+          (int-to-16bit (qdcount obj))
+          (int-to-16bit (ancount obj))
+          (int-to-16bit (nscount obj))
+          (int-to-16bit (arcount obj))))
+
+
+(defun make-dns-header (response)
+  (make-instance 'dns-header
+                 :id (+ (ash (elt response 0) 8) (elt response 1))
+                 :qr     (ash (logand (elt response 2) #b10000000) -7)
+                 :opcode (ash (logand (elt response 2) #b01111000) -3)
+                 :aa     (ash (logand (elt response 2) #b00000100) -2)
+                 :tc     (ash (logand (elt response 2) #b00000010) -1)
+                 :rd          (logand (elt response 2) #b00000001)
+                 :ra    (ash (logand (elt response 3) #b10000000) -7)
+                 :z     (ash (logand (elt response 3) #b01110000) -4)
+                 :rcode      (logand (elt response 3) #b00001111)
+                 :qdcount (+ (ash (elt response  4) 8) (elt response  5))
+                 :ancount (+ (ash (elt response  6) 8) (elt response  7))
+                 :nscount (+ (ash (elt response  8) 8) (elt response  9))
+                 :arcount (+ (ash (elt response 10) 8) (elt response 11))))
+
+
 ;;; ### dns-label
 ;;;
 ;;; To Do:
