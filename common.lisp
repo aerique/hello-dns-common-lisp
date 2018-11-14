@@ -331,71 +331,6 @@
         finally (return (concatenate 'list result #(0)))))
 
 
-;;; ### dns-message
-;;;
-;;; #(90 26 1 32 0 1 0 0 0 0 0 1 3 119 119 119 8 112 111 119 101 114 100 110 115 3
-;;;   99 111 109 0 0 1 0 1 0 0 41 16 0 0 0 0 0 0 12 0 10 0 8 166 243 81 137 106 22
-;;;   124 116)
-;;; (:ID 23066 :QR :QUERY :OPCODE :QUERY :AA NIL :TC NIL :RD T :RA NIL :Z 2 :RCODE
-;;;  :NOERROR :QDCOUNT 1 :ANCOUNT 0 :NSCOUNT 0 :ARCOUNT 1 :QUESTION-SECTION
-;;;  ((:QNAME www.powerdns.com :QTYPE :A :QCLASS :IN)) :ANSWER-SECTION NIL
-;;;  :RECORD-SECTION NIL :ADDITIONAL-SECTION
-;;;  ((:NAME  :TYPE :OPT :CLASS NIL :TTL 0 :RDLENGTH 12 :RDATA
-;;;    #(0 10 0 8 166 243 81 137 106 22 124 116)))
-;;;  :MESSAGE-SIZE 57)
-;;; (make-instance 'dns-message :id 23066 :qr :query :opcode :query :aa nil :tc nil :rd t :ra nil :z 2 :rcode :noerror :qdcount 1 :ancount 0 :nscount 0 :arcount 1 :questions (list (list :qname (make-dns-name "www.powerdns.com") :qtype :a :qclass :in)))
-;;;
-;;; (make-instance 'dns-message :id 8765 :qr :answer :opcode :query :aa t :tc nil :rd nil :ra nil :z 0 :rcode :noerror :qdcount 1 :ancount 1 :nscount 0 :arcount 0 :questions (list (list :qname (make-dns-name "www.powerdns.com") :qtype :a :qclass :in)) :answers (list (list :name (make-dns-name "www.powerdns.com") :type :a :class :in :ttl 86400 :rdlength 4 :rdata #(1 2 3 4))))
-
-(defclass dns-message ()
-  ((id      :initarg :id      :reader id      :type (integer 0 65535)
-            :initform (random 65536))
-   (qr      :initarg :qr      :reader qr      :type (or :query :response))
-   (opcode  :initarg :opcode  :reader opcode  :type keyword)
-   (aa      :initarg :aa      :reader aa      :type boolean)
-   (tc      :initarg :tc      :reader tc      :type boolean)
-   (rd      :initarg :rd      :reader rd      :type boolean)
-   (ra      :initarg :ra      :reader ra      :type boolean)
-   (z       :initarg :z       :reader z       :initform 0)
-   (rcode   :initarg :rcode   :reader rcode   :type keyword)
-   (qdcount :initarg :qdcount :reader qdcount :type (integer 0 65535))
-   (ancount :initarg :ancount :reader ancount :type (integer 0 65535))
-   (nscount :initarg :nscount :reader nscount :type (integer 0 65535))
-   (arcount :initarg :arcount :reader arcount :type (integer 0 65535))
-   (questions  :initarg :questions  :reader questions  :initform ())
-   (answers    :initarg :answers    :reader answers    :initform ())
-   (records    :initarg :records    :reader records    :initform ())
-   (additional :initarg :additional :reader additional :initform ())))
-
-
-(defmethod serialize ((obj dns-message))
-  (concatenate 'vector
-    (int-to-16bit (id obj))                       ; ID
-    (list (+ (if (eq (qr obj) :query) 0 128)      ; QR
-             (case (opcode obj)                   ; OPCODE
-               (:query   0)
-               (:iquery  8)
-               (:status 16)
-               (otherwise (error "Illegal OPCODE: ~S" (opcode obj))))
-             (if (aa obj) 4 0)                    ; AA
-             (if (tc obj) 2 0)                    ; TC
-             (if (rd obj) 1 0))                   ; RD
-          (+ (if (ra obj) 128 0)                  ; RA
-             (ash (z obj) 4)))                    ; Z
-    (int-to-16bit (qdcount obj))                  ; QDCOUNT
-    (int-to-16bit (ancount obj))                  ; ANCOUNT
-    (int-to-16bit (nscount obj))                  ; NSCOUNT
-    (int-to-16bit (arcount obj))                  ; ARCOUNT
-    (loop for q in (questions obj)                ; Question Section
-          append (serialize-question-section q))
-    (loop for rr in (answers obj)                 ; Answer Section
-          append (serialize-resource-record rr))
-    (loop for rr in (records obj)                 ; Authority Records Section
-          append (serialize-resource-record rr))
-    (loop for rr in (additional obj)              ; Additional Section
-          append (serialize-resource-record rr))))
-
-
 ;;; ### dns-question-section
 
 (defclass dns-question-section ()
@@ -491,6 +426,69 @@
                                 (subseq dns-message (+ new-offset 10)
                                         (+ new-offset 10 rdlength)))
                      :raw (subseq dns-message offset (+ new-offset 10 rdlength))))))
+
+
+;;; ### dns-message
+
+(defclass dns-message ()
+  ((header     :initarg :header     :reader header     :type dns-header)
+   (questions  :initarg :questions  :reader questions  :type (list dns-question-section)
+               :initform nil)
+   (answers    :initarg :answers    :reader answers    :type (list dns-resource-record)
+               :initform nil)
+   (records    :initarg :records    :reader records    :type (list dns-resource-record)
+               :initform nil)
+   (additional :initarg :additional :reader additional :type (list dns-resource-record)
+               :initform nil)))
+
+
+;; Don't really know what to print here.
+(defmethod print-object ((obj dns-message) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "ID=~D QNAME=~A"
+            (id (header obj))
+            (when (questions obj)
+              (qname (first (questions obj)))))))
+
+
+(defun make-dns-message (dns-message)
+  (let ((offset 12)
+        (header (make-dns-header dns-message)))
+    (make-instance 'dns-message
+                   :header header
+                   :questions (loop for i from 0 below (qdcount header)
+                                    for qs = (make-dns-question-section
+                                              dns-message offset)
+                                    collect qs
+                                    do (incf offset (length (raw qs))))
+                   :answers (loop for i from 0 below (ancount header)
+                                  for rr = (make-dns-resource-record dns-message
+                                                                     offset)
+                                  collect rr
+                                  do (incf offset (length (raw rr))))
+                   :records (loop for i from 0 below (nscount header)
+                                  for rr = (make-dns-resource-record dns-message
+                                                                     offset)
+                                  collect rr
+                                  do (incf offset (length (raw rr))))
+                   :additional (loop for i from 0 below (arcount header)
+                                     for rr = (make-dns-resource-record
+                                               dns-message offset)
+                                     collect rr
+                                     do (incf offset (length (raw rr)))))))
+
+
+(defmethod serialize ((obj dns-message))
+  (concatenate 'vector
+    (serialize (header obj))          ; Header
+    (loop for qs in (questions obj)   ; Question Section
+          append (serialize qs))
+    (loop for rr in (answers obj)     ; Answer Section
+          append (serialize rr))
+    (loop for rr in (records obj)     ; Authority Records Section
+          append (serialize rr))
+    (loop for rr in (additional obj)  ; Additional Section
+          append (serialize rr))))
 
 
 ;;; Functions
