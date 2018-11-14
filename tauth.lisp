@@ -27,30 +27,31 @@
 (defvar *n_queries* 0)
 
 (defparameter normal
-  #(;; Header
-    34 61  ; ID
-    132 0  ; QR Opcode AA TC RD RA Z RCODE
-    0 1    ; QDCOUNT
-    0 1    ; ANCOUNT
-    0 0    ; NSCOUNT
-    0 0    ; ARCOUNT
-    ;; Question Section
-    3 119 119 119
-    8 112 111 119 101 114 100 110 115
-    3 99 111 109
-    0
-    0 1  ; QTYPE
-    0 1  ; QCLASS
-    ;; Answer Section
-    3 119 119 119
-    8 112 111 119 101 114 100 110 115
-    3 99 111 109
-    0
-    0 1         ; TYPE
-    0 1         ; CLASS
-    0 1 81 128  ; TTL
-    0 4         ; RDLENGTH
-    1 2 3 4))   ; RDATA
+  (coerce #(;; Header
+            34 61  ; ID
+            132 0  ; QR Opcode AA TC RD RA Z RCODE
+            0 1    ; QDCOUNT
+            0 1    ; ANCOUNT
+            0 0    ; NSCOUNT
+            0 0    ; ARCOUNT
+            ;; Question Section
+            3 119 119 119
+            8 112 111 119 101 114 100 110 115
+            3 99 111 109
+            0
+            0 1  ; QTYPE
+            0 1  ; QCLASS
+            ;; Answer Section
+            3 119 119 119
+            8 112 111 119 101 114 100 110 115
+            3 99 111 109
+            0
+            0 1         ; TYPE
+            0 1         ; CLASS
+            0 1 81 128  ; TTL
+            0 4         ; RDLENGTH
+            1 2 3 4)    ; RDATA
+          '(vector (unsigned-byte 8))))
 
 (defparameter crafted
   #(;; Header
