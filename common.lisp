@@ -17,6 +17,12 @@
 
 (defvar *verbose* nil)
 
+(defparameter testmsg
+  (coerce #(90 26 1 32 0 1 0 0 0 0 0 1 3 119 119 119 8 112 111 119 101 114 100
+            110 115 3 99 111 109 0 0 1 0 1 0 0 41 16 0 0 0 0 0 0 12 0 10 0 8
+            166 243 81 137 106 22 124 116)
+          '(vector (unsigned-byte 8))))
+
 
 ;; Silence compiler about undefined functions.
 ;; (Common Lisp has many warts: this is one of them.)
