@@ -402,7 +402,8 @@
   ((qname  :initarg :qname  :reader qname  :type dns-name)
    (qtype  :initarg :qtype  :reader qtype  :type (integer 0 65535))
    (qclass :initarg :qclass :reader qclass :type (integer 0 65535))
-   (raw    :initarg :raw    :reader raw    :type (vector (unsigned-byte 8)))))
+   (raw    :initarg :raw    :reader raw    :type (vector (unsigned-byte 8))
+           :initform nil)))
 
 
 (defmethod print-object ((obj dns-question-section) stream)
@@ -413,13 +414,21 @@
             (dns-class (qclass obj)))))
 
 
+(defmethod serialize ((obj dns-question-section))
+  (if (raw obj)
+      (coerce (raw obj) 'list)
+      (append (serialize (qname obj))
+              (int-to-16bit (qtype obj))
+              (int-to-16bit (qtype obj)))))
+
+
 (defun make-dns-question-section (dns-message &optional (offset 12))
   (multiple-value-bind (qname new-offset)
       (parse-qname dns-message offset)
     (make-instance 'dns-question-section
                    :qname (make-dns-name qname)
-                   :qtype (+ (ash (elt dns-message (+ new-offset 0)) 8)
-                                  (elt dns-message (+ new-offset 1)))
+                   :qtype  (+ (ash (elt dns-message (+ new-offset 0)) 8)
+                                   (elt dns-message (+ new-offset 1)))
                    :qclass (+ (ash (elt dns-message (+ new-offset 2)) 8)
                                    (elt dns-message (+ new-offset 3)))
                    :raw (subseq dns-message offset (+ new-offset 4)))))
