@@ -390,6 +390,35 @@
           append (serialize-resource-record rr))))
 
 
+;;; ### dns-question-section
+
+(defclass dns-question-section ()
+  ((qname  :initarg :qname  :reader qname  :type dns-name)
+   (qtype  :initarg :qtype  :reader qtype  :type (integer 0 65535))
+   (qclass :initarg :qclass :reader qclass :type (integer 0 65535))
+   (raw    :initarg :raw    :reader raw    :type (vector (unsigned-byte 8)))))
+
+
+(defmethod print-object ((obj dns-question-section) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "QNAME=~S QTYPE=~A QCLASS=~A"
+            (qname obj)
+            (dns-type (qtype obj))
+            (dns-class (qclass obj)))))
+
+
+(defun make-dns-question-section (dns-message &optional (offset 12))
+  (multiple-value-bind (qname new-offset)
+      (parse-qname dns-message offset)
+    (make-instance 'dns-question-section
+                   :qname (make-dns-name qname)
+                   :qtype (+ (ash (elt dns-message (+ new-offset 0)) 8)
+                                  (elt dns-message (+ new-offset 1)))
+                   :qclass (+ (ash (elt dns-message (+ new-offset 2)) 8)
+                                   (elt dns-message (+ new-offset 3)))
+                   :raw (subseq dns-message offset (+ new-offset 4)))))
+
+
 ;;; Functions
 
 ;; ASH: arithmetic (binary) shift towards most significant bit
