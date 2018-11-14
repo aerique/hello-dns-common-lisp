@@ -434,6 +434,65 @@
                    :raw (subseq dns-message offset (+ new-offset 4)))))
 
 
+;;; ### dns-resource-record
+
+;; Why `rtype` and `rclass` instead of the RFC names?  Unfortunately `type` and
+;; `class` collide with built-in Common Lisp names and this is the easiest
+;; solution.  Perhaps in the future I'll shadow the names.
+(defclass dns-resource-record ()
+  ((name     :initarg :name     :reader name     :type dns-name)
+   (rtype    :initarg :rtype    :reader rtype    :type (integer 0 65535))
+   (rclass   :initarg :rclass   :reader rclass   :type (integer 0 65535))
+   (ttl      :initarg :ttl      :reader ttl      :type (integer 0 4294967295))
+   (rdlength :initarg :rdlength :reader rdlength :type (integer 0 65535))
+   (rdata    :initarg :rdata    :reader rdata    :type (vector (unsigned-byte 8)))
+   (raw      :initarg :raw      :reader raw      :type (vector (unsigned-byte 8))
+             :initform nil)))
+
+
+(defmethod print-object ((obj dns-resource-record) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "NAME=~S TYPE=~A CLASS=~A TTL=~D"
+            (name obj)
+            (dns-type (rtype obj))
+            (dns-class (rclass obj))
+            (ttl obj))))
+
+
+(defmethod serialize ((obj dns-resource-record))
+  (if (raw obj)
+      (coerce (raw obj) 'list)
+      (append (serialize (name obj))
+              (int-to-16bit (rtype obj))
+              (int-to-16bit (rclass obj))
+              (int-to-32bit (ttl obj))
+              (int-to-16bit (rdlength obj))
+              (coerce (rdata obj) 'list))))
+
+
+(defun make-dns-resource-record (dns-message &optional (offset 12))
+  (multiple-value-bind (name new-offset)
+      (parse-qname dns-message offset)
+    (let* ((type     (+ (ash (elt dns-message (+ new-offset 0))  8)
+                             (elt dns-message (+ new-offset 1))))
+           (class    (+ (ash (elt dns-message (+ new-offset 2))  8)
+                             (elt dns-message (+ new-offset 3))))
+           (ttl      (+ (ash (elt dns-message (+ new-offset 4)) 24)
+                        (ash (elt dns-message (+ new-offset 5)) 16)
+                        (ash (elt dns-message (+ new-offset 6))  8)
+                             (elt dns-message (+ new-offset 7))))
+           (rdlength (+ (ash (elt dns-message (+ new-offset 8))  8)
+                             (elt dns-message (+ new-offset 9)))))
+      (make-instance 'dns-resource-record :name (make-dns-name name) :rtype type
+                     :rclass class :ttl ttl :rdlength rdlength
+                     :rdata (if (and (= type 2)
+                                     (= class 1))
+                                (parse-qname dns-message (+ new-offset 10))
+                                (subseq dns-message (+ new-offset 10)
+                                        (+ new-offset 10 rdlength)))
+                     :raw (subseq dns-message offset (+ new-offset 10 rdlength))))))
+
+
 ;;; Functions
 
 ;; ASH: arithmetic (binary) shift towards most significant bit
