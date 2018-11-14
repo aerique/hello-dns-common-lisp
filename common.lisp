@@ -321,9 +321,11 @@
                       (setf label-start i))))
         finally (when label-start
                   (push (make-dns-label (subseq str label-start (1+ i))) result))
-                (return (make-instance 'dns-name :name (coerce (reverse result) 'vector)))))
+                (return (make-instance 'dns-name
+                                       :name (coerce (reverse result) 'vector)))))
 
 
+;; This is pretty horrible.
 (defmethod serialize ((obj dns-name))
   (loop with result = nil
         for label across (name obj)
@@ -588,35 +590,6 @@
     buffer))
 
 
-(defun parse-dns-header (response)
-  (values (list :id (+ (ash (elt response  0) 8) (elt response  1))
-                :qr (if (= 0 (ash (logand (elt response 2) #b10000000) -7))
-                        :query
-                        :response)
-                :opcode (case (ash (logand (elt response 2) #b01111000) -3)
-                          (0 :query)
-                          (1 :iquery)
-                          (2 :status)
-                          (otherwise nil))
-                :aa (= 0 (ash (logand (elt response 2) #b00000100) -2))
-                :tc (= 0 (ash (logand (elt response 2) #b00000010) -1))
-                :rd (= 0 (logand (elt response 2) #b00000001))
-                :ra (= 0 (ash (logand (elt response 3) #b10000000) -7))
-                :z (ash (logand (elt response 3) #b01110000) -4)
-                :rcode (case (logand (elt response 3) #b00001111)
-                         (0 :noerror)
-                         (1 :formerr)
-                         (2 :servfail)
-                         (3 :nxdomain)
-                         (4 :notimp)
-                         (5 :refused))
-                :qdcount (+ (ash (elt response  4) 8) (elt response  5))
-                :ancount (+ (ash (elt response  6) 8) (elt response  7))
-                :nscount (+ (ash (elt response  8) 8) (elt response  9))
-                :arcount (+ (ash (elt response 10) 8) (elt response 11)))
-          12))
-
-
 ;; FIXME Recursive, a carefully crafted response (cyclic pointers) can run
 ;;       this into the ground.
 ;;       A bandaid would be keeping a DEPTH parameter and just stopping at
@@ -647,91 +620,6 @@
                                                     (+ offset 1 length))))
                       next-name)
               next-offset))))))
-
-
-(defun parse-dns-question-section (dns-message &optional (offset 12))
-  "Parses DNS question section in DNS-MESSAGE at OFFSET.
-  Returns plist with QNAME, QTYPE and QCLASS keys as the first value and
-  the new offset as the second value."
-  (multiple-value-bind (qname new-offset)
-      (parse-qname dns-message offset)
-    (values (list :qname (make-dns-name qname)
-                  :qtype (dns-type
-                           (+ (ash (elt dns-message (+ new-offset 0)) 8)
-                                   (elt dns-message (+ new-offset 1))))
-                  :qclass (dns-class
-                           (+ (ash (elt dns-message (+ new-offset 2)) 8)
-                                  (elt dns-message (+ new-offset 3)))))
-            (+ new-offset 4))))
-
-
-(defun parse-dns-resource-record (dns-message &optional (offset 12))
-  ;(let ((*print-pretty* nil))
-  ;  (format t "~S~%" (subseq dns-message offset (+ offset 24))))
-  (multiple-value-bind (name new-offset)
-      (parse-qname dns-message offset)
-    (let* ((type  (dns-type  (+ (ash (elt dns-message (+ new-offset 0))  8)
-                                     (elt dns-message (+ new-offset 1)))))
-           (class (dns-class (+ (ash (elt dns-message (+ new-offset 2))  8)
-                                     (elt dns-message (+ new-offset 3)))))
-           (ttl              (+ (ash (elt dns-message (+ new-offset 4)) 24)
-                                (ash (elt dns-message (+ new-offset 5)) 16)
-                                (ash (elt dns-message (+ new-offset 6))  8)
-                                     (elt dns-message (+ new-offset 7))))
-           (rdlength         (+ (ash (elt dns-message (+ new-offset 8))  8)
-                                     (elt dns-message (+ new-offset 9)))))
-      (values
-       (list :name (make-dns-name name)
-             :type type :class class :ttl ttl :rdlength rdlength
-             :rdata (if (eq type :ns)  ; FIXME also test if CLASS==:IN
-                        (parse-qname dns-message (+ new-offset 10))
-                        (subseq dns-message (+ new-offset 10)
-                                (+ new-offset 10 rdlength))))
-       (+ new-offset 10 rdlength)))))
-
-
-(defun parse-dns-message (response)
-  (let ((offset 12)
-        (header (parse-dns-header response)))
-    (append
-     header
-     (list :question-section (loop for i from 0 below (getf header :qdcount)
-                                   for qs = (multiple-value-list
-                                             (parse-dns-question-section
-                                              response offset))
-                                   collect (first qs)
-                                   do (setf offset (second qs)))
-           :answer-section (loop for i from 0 below (getf header :ancount)
-                                 for an = (multiple-value-list
-                                           (parse-dns-resource-record response
-                                                                      offset))
-                                 collect (first an)
-                                 do (setf offset (second an)))
-           :record-section (loop for i from 0 below (getf header :nscount)
-                                 for ns = (multiple-value-list
-                                           (parse-dns-resource-record response
-                                                                      offset))
-                                 collect (first ns)
-                                 do (setf offset (second ns)))
-           :additional-section (loop for i from 0 below (getf header :arcount)
-                                     for ar = (multiple-value-list
-                                               (parse-dns-resource-record
-                                                response offset))
-                                     collect (first ar)
-                                     do (setf offset (second ar)))
-           :message-size offset))))
-
-
-;;- FIXME remove: not used
-(defun ip2str (ip)
-  (cond ((= (length ip) 4)
-         (format nil "~D.~D.~D.~D"
-                 (elt ip 0) (elt ip 1) (elt ip 2) (elt ip 3)))
-        ((= (length ip) 8)
-         (string-downcase (format nil "~X:~X:~X:~X:~X:~X:~X:~X"
-                                 (elt ip 0) (elt ip 1) (elt ip 2) (elt ip 3)
-                                 (elt ip 4) (elt ip 5) (elt ip 6) (elt ip 7))))
-        (t (error "Invalid IP: ~S" ip))))
 
 
 (defun mkstr (&rest args)
