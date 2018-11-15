@@ -28,6 +28,7 @@
 ;; (Common Lisp has many warts: this is one of them.)
 (defun int-to-16bit (a &key b) (declare (ignore a b)))
 (defun int-to-32bit (a &key b) (declare (ignore a b)))
+(defun parse-qname (a &optional b) (declare (ignore a b)))
 (defun serialize-question-section (a) (declare (ignore a)))
 (defun serialize-resource-record (a) (declare (ignore a)))
 
