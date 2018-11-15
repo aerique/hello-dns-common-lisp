@@ -282,11 +282,13 @@
 
 
 (defmethod make-dns-label ((octets vector))
+  (when (> (length octets) 63)
+    (error "DNS-LABEL cannot be longer than 63 octets"))
   (make-instance 'dns-label :label octets))
 
 
 (defmethod make-dns-label ((string string))
-  (make-instance 'dns-label :label (string-to-octets string)))
+  (make-dns-label (string-to-octets string)))
 
 
 (defmethod serialize ((obj dns-label))
@@ -322,6 +324,8 @@
                       (setf label-start i))))
         finally (when label-start
                   (push (make-dns-label (subseq str label-start (1+ i))) result))
+                (when (> (length result) 255)
+                  (error "DNS-NAME cannot be longer than 255 octets"))
                 (return (make-instance 'dns-name
                                        :name (coerce (reverse result) 'vector)))))
 
@@ -381,6 +385,7 @@
   ((name     :initarg :name     :reader name     :type dns-name)
    (rtype    :initarg :rtype    :reader rtype    :type (integer 0 65535))
    (rclass   :initarg :rclass   :reader rclass   :type (integer 0 65535))
+   ;; FIXME RFC 1035: "TTL: positive values of a signed 32 bit number."
    (ttl      :initarg :ttl      :reader ttl      :type (integer 0 4294967295))
    (rdlength :initarg :rdlength :reader rdlength :type (integer 0 65535))
    (rdata    :initarg :rdata    :reader rdata    :type (vector (unsigned-byte 8)))
