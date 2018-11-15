@@ -28,7 +28,7 @@
 ;; (Common Lisp has many warts: this is one of them.)
 (defun int-to-16bit (a &key b) (declare (ignore a b)))
 (defun int-to-32bit (a &key b) (declare (ignore a b)))
-(defun parse-qname (a &optional b) (declare (ignore a b)))
+(defun parse-dns-name (a &optional b) (declare (ignore a b)))
 (defun serialize-question-section (a) (declare (ignore a)))
 (defun serialize-resource-record (a) (declare (ignore a)))
 
@@ -362,7 +362,7 @@
 
 (defun make-dns-question-section (dns-message &optional (offset 12))
   (multiple-value-bind (qname new-offset)
-      (parse-qname dns-message offset)
+      (parse-dns-name dns-message offset)
     (make-instance 'dns-question-section
                    :qname (make-dns-name qname)
                    :qtype  (+ (ash (elt dns-message (+ new-offset 0)) 8)
@@ -410,7 +410,7 @@
 
 (defun make-dns-resource-record (dns-message &optional (offset 12))
   (multiple-value-bind (name new-offset)
-      (parse-qname dns-message offset)
+      (parse-dns-name dns-message offset)
     (let* ((type     (+ (ash (elt dns-message (+ new-offset 0))  8)
                              (elt dns-message (+ new-offset 1))))
            (class    (+ (ash (elt dns-message (+ new-offset 2))  8)
@@ -425,7 +425,7 @@
                      :rclass class :ttl ttl :rdlength rdlength
                      :rdata (if (and (= type 2)
                                      (= class 1))
-                                (parse-qname dns-message (+ new-offset 10))
+                                (parse-dns-name dns-message (+ new-offset 10))
                                 (subseq dns-message (+ new-offset 10)
                                         (+ new-offset 10 rdlength)))
                      :raw (subseq dns-message offset (+ new-offset 10 rdlength))))))
@@ -595,29 +595,27 @@
 ;;       this into the ground.
 ;;       A bandaid would be keeping a DEPTH parameter and just stopping at
 ;;       a certain point (4, 16, 256?).
-;; FIXME rename QNAME to NAME
-;; FIXME rename `part` to `label`
-(defun parse-qname (buffer &optional (offset 0))
-  (let ((length (elt buffer offset)))
-    (cond ;; end of qname
+(defun parse-dns-name (dns-message &optional (offset 0))
+  (let ((length (elt dns-message offset)))
+    (cond ;; end of name
           ((= length 0)
            (values nil
                    (+ offset 1)))
-          ;; message compression: pointer to (part of) qname
-          ((= (logand (elt buffer offset) #b11000000)
+          ;; message compression: pointer to (part of) name
+          ((= (logand (elt dns-message offset) #b11000000)
               #b11000000)
-           (multiple-value-bind (qname)
-               (parse-qname buffer
-                        (+ (ash (logand (elt buffer (+ offset 0)) #b00111111) 8)
-                                        (elt buffer (+ offset 1))))
-             (values qname
+           (multiple-value-bind (name)
+               (parse-dns-name dns-message
+                   (+ (ash (logand (elt dns-message (+ offset 0)) #b00111111) 8)
+                                   (elt dns-message (+ offset 1))))
+             (values name
                      (+ offset 2))))
-          ;; normal qname part
+          ;; normal qname label
           (t
            (multiple-value-bind (next-name next-offset)
-               (parse-qname buffer (+ offset 1 length))
+               (parse-dns-name dns-message (+ offset 1 length))
              (values
-              (append (list (make-dns-label (subseq buffer (+ offset 1)
+              (append (list (make-dns-label (subseq dns-message (+ offset 1)
                                                     (+ offset 1 length))))
                       next-name)
               next-offset))))))
