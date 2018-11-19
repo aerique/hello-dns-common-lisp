@@ -259,21 +259,21 @@
           (int-to-16bit (arcount obj))))
 
 
-(defun make-dns-header (response)
+(defun make-dns-header (dns-message)
   (make-instance 'dns-header
-                 :id (+ (ash (elt response 0) 8) (elt response 1))
-                 :qr     (ash (logand (elt response 2) #b10000000) -7)
-                 :opcode (ash (logand (elt response 2) #b01111000) -3)
-                 :aa     (ash (logand (elt response 2) #b00000100) -2)
-                 :tc     (ash (logand (elt response 2) #b00000010) -1)
-                 :rd          (logand (elt response 2) #b00000001)
-                 :ra    (ash (logand (elt response 3) #b10000000) -7)
-                 :z     (ash (logand (elt response 3) #b01110000) -4)
-                 :rcode      (logand (elt response 3) #b00001111)
-                 :qdcount (+ (ash (elt response  4) 8) (elt response  5))
-                 :ancount (+ (ash (elt response  6) 8) (elt response  7))
-                 :nscount (+ (ash (elt response  8) 8) (elt response  9))
-                 :arcount (+ (ash (elt response 10) 8) (elt response 11))))
+                 :id (+ (ash (elt dns-message 0) 8) (elt dns-message 1))
+                 :qr     (ash (logand (elt dns-message 2) #b10000000) -7)
+                 :opcode (ash (logand (elt dns-message 2) #b01111000) -3)
+                 :aa     (ash (logand (elt dns-message 2) #b00000100) -2)
+                 :tc     (ash (logand (elt dns-message 2) #b00000010) -1)
+                 :rd          (logand (elt dns-message 2) #b00000001)
+                 :ra    (ash (logand (elt dns-message 3) #b10000000) -7)
+                 :z     (ash (logand (elt dns-message 3) #b01110000) -4)
+                 :rcode      (logand (elt dns-message 3) #b00001111)
+                 :qdcount (+ (ash (elt dns-message  4) 8) (elt dns-message  5))
+                 :ancount (+ (ash (elt dns-message  6) 8) (elt dns-message  7))
+                 :nscount (+ (ash (elt dns-message  8) 8) (elt dns-message  9))
+                 :arcount (+ (ash (elt dns-message 10) 8) (elt dns-message 11))))
 
 
 ;;; ### dns-label
