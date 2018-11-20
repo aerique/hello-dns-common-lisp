@@ -567,40 +567,33 @@
 ;; - `(get-response (getf (first *hints*) :address)
 ;;                  (getf (first *hints*) :port) "." nil)`
 ;;
-(defun get-response (dns-name &key (host "9.9.9.9") (port 53) (dns-type "aaaa"))
+(defun get-response (dns-name &key (host "9.9.9.9") (port 53) (dns-type 1))
   "Returns the raw buffer when querying HOST for DNS-NAME (with DNS-TYPE).
   HOST must be a string, for example: \"9.9.9.9\".
   DNS-NAME must be a string, for example: \"www.example.com\".
   PORT must be an integer, for example: 53.
   DNS-TYPE must be a string, for example: \"aaaa\"."
   (when *verbose* (format *debug-io* "Connecting to ~A:~D...~%" host port))
-  (let* ((header ;; we only need to set the ID and QDCOUNT
-                 (list (random 256) (random 256)  ; id
-                       (+ #b00000000              ; qr
-                          #b00000000              ; opcode
-                          #b00000000              ; aa
-                          #b00000000              ; tc
-                          #b00000001)             ; rd
-                       (+ #b00000000              ; ra
-                          #b00000000              ; z
-                          #b00000000)             ; rcode
-                       0 1                        ; qd count
-                       0 0                        ; an count
-                       0 0                        ; ns count
-                       0 0))                      ; ar count
-         (question (append (serialize (make-dns-name dns-name))
-                           ;; FIXME only works for QTYPEs < 256
-                           (list 0 (str2type dns-type)  ; qtype  (NS)
-                                 0 1)))                 ; qclass (IN)
+  (let* (;; If not supplied everything defaults to 0, except ID which is a
+         ;; random number between 0 and 65535.  (See DNS-HEADER class.)
+         (header (make-instance 'dns-header :rd 1 :qdcount 1))
+         (question (make-instance 'dns-question-section
+                                  :qname (make-dns-name dns-name)
+                                  :qtype dns-type
+                                  :qclass 1))
+         (packet (coerce (append (serialize header) (serialize question))
+                         '(vector (unsigned-byte 8))))
          (socket (usocket:socket-connect host port :protocol :datagram
                                          :timeout 5))
          buffer)
     (unwind-protect
-        (progn (when *verbose* (format *debug-io* "~&Connected...~%Sending ~S~%Sending data...~%" (coerce (append header question) '(vector (unsigned-byte 8)))))
-               (usocket:socket-send socket (coerce (append header question)
-                                                   '(vector (unsigned-byte 8)))
-                                    (+ (length header) (length question)))
-               (when *verbose* (format *debug-io* "~&Waiting for response...~%"))
+        (progn (when *verbose*
+                 (format *debug-io*
+                         "~&Connected...~%Sending ~S~%Sending data...~%"
+                         packet))
+               (usocket:socket-send socket packet (length packet))
+               (when *verbose*
+                 (format *debug-io* "~&Waiting for response...~%"))
                (setf buffer (usocket:socket-receive socket nil 1500)))
       (progn (when *verbose* (format *debug-io* "~&Done. Closing socket...~%"))
              (usocket:socket-close socket)))
