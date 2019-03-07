@@ -261,19 +261,19 @@
 
 (defun make-dns-header (dns-message)
   (make-instance 'dns-header
-                 :id (+ (ash (elt dns-message 0) 8) (elt dns-message 1))
-                 :qr     (ash (logand (elt dns-message 2) #b10000000) -7)
-                 :opcode (ash (logand (elt dns-message 2) #b01111000) -3)
-                 :aa     (ash (logand (elt dns-message 2) #b00000100) -2)
-                 :tc     (ash (logand (elt dns-message 2) #b00000010) -1)
-                 :rd          (logand (elt dns-message 2) #b00000001)
-                 :ra    (ash (logand (elt dns-message 3) #b10000000) -7)
-                 :z     (ash (logand (elt dns-message 3) #b01110000) -4)
-                 :rcode      (logand (elt dns-message 3) #b00001111)
-                 :qdcount (+ (ash (elt dns-message  4) 8) (elt dns-message  5))
-                 :ancount (+ (ash (elt dns-message  6) 8) (elt dns-message  7))
-                 :nscount (+ (ash (elt dns-message  8) 8) (elt dns-message  9))
-                 :arcount (+ (ash (elt dns-message 10) 8) (elt dns-message 11))))
+               :id (+ (ash (elt dns-message 0) 8) (elt dns-message 1))
+               :qr     (ash (logand (elt dns-message 2) #b10000000) -7)
+               :opcode (ash (logand (elt dns-message 2) #b01111000) -3)
+               :aa     (ash (logand (elt dns-message 2) #b00000100) -2)
+               :tc     (ash (logand (elt dns-message 2) #b00000010) -1)
+               :rd          (logand (elt dns-message 2) #b00000001)
+               :ra    (ash (logand (elt dns-message 3) #b10000000) -7)
+               :z     (ash (logand (elt dns-message 3) #b01110000) -4)
+               :rcode      (logand (elt dns-message 3) #b00001111)
+               :qdcount (+ (ash (elt dns-message  4) 8) (elt dns-message  5))
+               :ancount (+ (ash (elt dns-message  6) 8) (elt dns-message  7))
+               :nscount (+ (ash (elt dns-message  8) 8) (elt dns-message  9))
+               :arcount (+ (ash (elt dns-message 10) 8) (elt dns-message 11))))
 
 
 ;;; ### dns-label
@@ -285,7 +285,7 @@
 
 (defclass dns-label ()
   ((label :initarg :label :reader label :type (vector (unsigned-byte 8))
-          :initform (error "Must supply :LABEL argument to DNS-LABEL class."))))
+          :initform (error ":LABEL argument to DNS-LABEL class missing."))))
 
 
 (defmethod print-object ((object dns-label) stream)
@@ -334,11 +334,12 @@
                  (t (unless label-start
                       (setf label-start i))))
         finally (when label-start
-                  (push (make-dns-label (subseq str label-start (1+ i))) result))
+                  (push (make-dns-label (subseq str label-start (1+ i)))
+                        result))
                 (when (> (length result) 255)
                   (error "DNS-NAME cannot be longer than 255 octets"))
                 (return (make-instance 'dns-name
-                                       :name (coerce (reverse result) 'vector)))))
+                                    :name (coerce (reverse result) 'vector)))))
 
 
 ;; This is pretty horrible.
@@ -437,8 +438,8 @@
                              (elt dns-message (+ new-offset 7))))
            (rdlength (+ (ash (elt dns-message (+ new-offset 8))  8)
                              (elt dns-message (+ new-offset 9)))))
-      (make-instance 'dns-resource-record :name (make-dns-name name) :rtype type
-                     :rclass class :ttl ttl :rdlength rdlength
+      (make-instance 'dns-resource-record :name (make-dns-name name)
+                     :rtype type :rclass class :ttl ttl :rdlength rdlength
                      :rdata (if (and (= type 2)
                                      (= class 1))
                                 (parse-dns-name dns-message (+ new-offset 10))
@@ -481,13 +482,13 @@
                                     collect qs
                                     do (incf offset (length (raw qs))))
                    :answers (loop for i from 0 below (ancount header)
-                                  for rr = (make-dns-resource-record dns-message
-                                                                     offset)
+                                  for rr = (make-dns-resource-record
+                                            dns-message offset)
                                   collect rr
                                   do (incf offset (length (raw rr))))
                    :records (loop for i from 0 below (nscount header)
-                                  for rr = (make-dns-resource-record dns-message
-                                                                     offset)
+                                  for rr = (make-dns-resource-record
+                                            dns-message offset)
                                   collect rr
                                   do (incf offset (length (raw rr))))
                    :additional (loop for i from 0 below (arcount header)
@@ -615,8 +616,8 @@
               #b11000000)
            (multiple-value-bind (name)
                (parse-dns-name dns-message
-                   (+ (ash (logand (elt dns-message (+ offset 0)) #b00111111) 8)
-                                   (elt dns-message (+ offset 1))))
+                  (+ (ash (logand (elt dns-message (+ offset 0)) #b00111111) 8)
+                                  (elt dns-message (+ offset 1))))
              (values name
                      (+ offset 2))))
           ;; normal qname label
