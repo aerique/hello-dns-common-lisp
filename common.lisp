@@ -52,12 +52,7 @@
 (defmethod dns-class ((class integer))
   (case class
     (  1 :in)
-    (  2 :cs)  ; obsolete, sometimes used in examples
     (  3 :ch)
-    (  4 :hs)
-    (254 :none)
-    (255 :any)
-    ;; being explicit
     (otherwise nil)))
 
 
@@ -87,26 +82,11 @@
     ( 3 :nxdomain)
     ( 4 :notimp)
     ( 5 :refused)
-    ( 6 :yxdomain)
-    ( 7 :yxrrset)
-    ( 8 :nxrrset)
     ( 9 :notauth)
-    (10 :notzone)
-    ;; WTF
-    ;(16 :badvers)
-    ;(16 :badsig)
-    (17 :badkey)
-    (18 :badtime)
-    (19 :badmode)
-    (20 :badname)
-    (21 :badalg)
-    (22 :badtrunc)
-    (23 :badcookie)
+    (16 :badvers)
     (otherwise nil)))
 
 
-;;; - https://en.wikipedia.org/wiki/List_of_DNS_record_types
-;;;   - obsolete record types have been skipped
 (defmethod dns-type ((type integer))
   (case type
     ;; resource records
@@ -117,46 +97,20 @@
     (   12 :ptr)
     (   15 :mx)
     (   16 :txt)
-    (   17 :rp)
-    (   18 :afsdb)
-    (   24 :sig)
-    (   25 :key)
     (   28 :aaaa)
-    (   29 :loc)
     (   33 :srv)
     (   35 :naptr)
-    (   36 :kx)
-    (   37 :cert)
-    (   39 :dname)
-    (   42 :apl)
     (   43 :ds)
-    (   44 :sshfp)
-    (   45 :ipseckey)
     (   46 :rrsig)
     (   47 :nsec)
     (   48 :dnskey)
-    (   49 :dhcid)
     (   50 :nsec3)
-    (   51 :nsec3param)
-    (   52 :tlsa)
-    (   53 :smimea)
-    (   55 :hip)
-    (   59 :cds)
-    (   60 :cdnskey)
-    (   61 :openpgpkey)
-    (  249 :tkey)
-    (  250 :tsig)
-    (  256 :uri)
-    (  257 :caa)
-    (32768 :ta)
-    (32769 :dlv)
     ;; other types and pseudo resource records
     (   41 :opt)
     (  251 :ixfr)
     (  252 :axfr)
-    ;(  255 :*)
     (  255 :any)
-    ;; being explicit
+    (  257 :caa)
     (otherwise nil)))
 
 
@@ -282,6 +236,7 @@
 ;;;
 ;;; - check for min size 1 and max size 63
 ;;; - parse input LABELs to valid DNS labels
+;;; - escaping (https://powerdns.org/hello-dns/tdns/README.md.html#objectsin%EE%80%90000l%EE%80%90/dnslabel)
 
 (defclass dns-label ()
   ((label :initarg :label :reader label :type (vector (unsigned-byte 8))
