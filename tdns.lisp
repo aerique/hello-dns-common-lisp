@@ -243,8 +243,9 @@
           :initform (error ":LABEL argument to DNS-LABEL class missing."))))
 
 
-(defmethod print-object ((object dns-label) stream)
-  (format stream "~A" (octets-to-string (label object))))
+(defmethod print-object ((obj dns-label) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "~A" (octets-to-string (label obj)))))
 
 
 (defmethod make-dns-label ((octets vector))
@@ -261,6 +262,10 @@
   (concatenate 'vector (vector (length (label obj))) (label obj)))
 
 
+(defmethod to-string ((obj dns-label))
+  (format nil "~A" (octets-to-string (label obj))))
+
+
 ;;; ### dns-name
 
 (defclass dns-name ()
@@ -268,8 +273,9 @@
          :initform (error "Must supply :NAME argument to DNS-NAME class."))))
 
 
-(defmethod print-object ((object dns-name) stream)
-  (format stream "~{~A~^.~}" (coerce (name object) 'list)))
+(defmethod print-object ((obj dns-name) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "~{~A~^ ~}" (coerce (name obj) 'list))))
 
 
 (defmethod make-dns-name ((lst list))
@@ -303,6 +309,11 @@
         for label across (name obj)
         do (setf result (concatenate 'vector result (serialize label)))
         finally (return (concatenate 'list result #(0)))))
+
+
+(defmethod to-string ((obj dns-name))
+  (format nil "~{~A~^.~}." (loop for label across (name obj)
+                                collect (to-string label))))
 
 
 ;;; ### dns-question-section
@@ -347,7 +358,8 @@
 
 ;; Why `rtype` and `rclass` instead of the RFC names?  Unfortunately `type` and
 ;; `class` collide with built-in Common Lisp names and this is the easiest
-;; solution.  Perhaps in the future I'll shadow the names.
+;; solution.  Perhaps in the future I'll shadow the names, but that's usually
+;; confusing and / or annoying.
 (defclass dns-resource-record ()
   ((name     :initarg :name     :reader name     :type dns-name)
    (rtype    :initarg :rtype    :reader rtype    :type (integer 0 65535))
@@ -362,8 +374,8 @@
 
 (defmethod print-object ((obj dns-resource-record) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "NAME=~S TYPE=~A CLASS=~A TTL=~D"
-            (name obj)
+    (format stream "NAME=~A TYPE=~A CLASS=~A TTL=~D"
+            (to-string (name obj))
             (dns-type (rtype obj))
             (dns-class (rclass obj))
             (ttl obj))))

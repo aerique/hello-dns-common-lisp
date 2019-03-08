@@ -19,3 +19,6 @@ to "DNS message values".
 Now the meaning of the values will only be shown when printing a class.
 
 This is something I want to try out and am not sure if it is a good idea.
+
+Also, this branch will try to stay closer to the original Hello DNS.
+This means the Common Lisp will sometimes read like transliterated C++.
