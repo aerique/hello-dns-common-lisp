@@ -2,6 +2,10 @@
 
 A Common Lisp implementation of [Hello DNS](https://github.com/ahupowerdns/hello-dns/).
 
+I'm having a very hard time to find the right balance between staying
+close to the original C++ Hello DNS source and being lispy.  This means
+the source currently looks a little schizophrenic.
+
 ## Branches
 
 ### `feature/do-not-convert-keywords`
