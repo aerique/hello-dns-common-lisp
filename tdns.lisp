@@ -1,4 +1,4 @@
-;;;;- common.lisp
+;;;;- tdns.lisp
 
 ;;; ## Packages
 ;;;
@@ -9,8 +9,8 @@
 
 ;; [usocket](https://github.com/usocket/usocket#introduction) is a
 ;; socket library for many Common Lisp implementations.
-(ql:quickload :usocket)
-(ql:quickload :usocket-server)
+(ql:quickload :usocket        #|:silent t|#)
+(ql:quickload :usocket-server #|:silent t|#)
 
 
 ;;; ## Globals
@@ -111,6 +111,33 @@
     (  252 :axfr)
     (  255 :any)
     (  257 :caa)
+    (otherwise nil)))
+
+;; Ok, this repetition needs a macro or a library.
+(defmethod dns-type ((type symbol))
+  (case type
+    ;; resource records
+    (:a       1)
+    (:ns      2)
+    (:cname   5)
+    (:soa     6)
+    (:ptr    12)
+    (:mx     15)
+    (:txt    16)
+    (:aaaa   28)
+    (:srv    33)
+    (:naptr  35)
+    (:ds     43)
+    (:rrsig  46)
+    (:nsec   47)
+    (:dnskey 48)
+    (:nsec3  50)
+    ;; other types and pseudo resource records
+    (:opt    41)
+    (:ixfr  251)
+    (:axfr  252)
+    (:any   255)
+    (:caa   257)
     (otherwise nil)))
 
 
@@ -328,8 +355,8 @@
 
 (defmethod print-object ((obj dns-question-section) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "QNAME=~S QTYPE=~A QCLASS=~A"
-            (qname obj)
+    (format stream "QNAME=~A QTYPE=~A QCLASS=~A"
+            (to-string (qname obj))
             (dns-type (qtype obj))
             (dns-class (qclass obj)))))
 
@@ -535,7 +562,7 @@
 ;; - `(get-response (getf (first *hints*) :address)
 ;;                  (getf (first *hints*) :port) "." nil)`
 ;;
-(defun get-response (dns-name &key (host "9.9.9.9") (port 53) (dns-type 1))
+(defun get-response (dns-name &key (host "9.9.9.9") (port 53) (dns-type "A"))
   "Returns the raw buffer when querying HOST for DNS-NAME (with DNS-TYPE).
   HOST must be a string, for example: \"9.9.9.9\".
   DNS-NAME must be a string, for example: \"www.example.com\".
@@ -546,9 +573,9 @@
          ;; random number between 0 and 65535.  (See DNS-HEADER class.)
          (header (make-instance 'dns-header :rd 1 :qdcount 1))
          (question (make-instance 'dns-question-section
-                                  :qname (make-dns-name dns-name)
-                                  :qtype dns-type
-                                  :qclass 1))
+                    :qname (make-dns-name dns-name)
+                    :qtype (dns-type (intern (string-upcase dns-type) :keyword))
+                    :qclass 1))
          (packet (coerce (append (serialize header) (serialize question))
                          '(vector (unsigned-byte 8))))
          (socket (usocket:socket-connect host port :protocol :datagram

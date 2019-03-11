@@ -44,7 +44,7 @@
 
 ;;; ## Main Program
 ;;;
-;;; As opposed to C/C++ `main` is just an arbitrary name here.
+;;; As opposed to C / C++ `main` is just an arbitrary name here.
 
 (defun main ()
   (let ((dn (second (argv)))
@@ -56,7 +56,7 @@
       (sb-ext:exit :code 1))
     (when *verbose*
       (format *debug-io* "dn=~S~%dt=~S~%server=~S~%" dn dt server))
-    (setf res (get-response dn :host server :port 53 :dns-type (parse-integer dt)))
+    (setf res (get-response dn :host server :port 53 :dns-type dt))
     (when *verbose*
       (format *debug-io* "~S~%" (make-dns-message res)))
     (describe-response (make-dns-message res) res))
