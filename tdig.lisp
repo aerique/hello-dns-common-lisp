@@ -8,7 +8,7 @@
 
 ;;; ## Packages
 
-(load "common.lisp")
+(load "tdns.lisp")
 
 
 ;;; ## Functions
@@ -25,20 +25,21 @@
       nil))
 
 
-(defun describe-response (parsed-response)
-  (format t "Received ~D byte response with RCode ~@(~A~), qname ~S, qtype ~A~%"
-          (getf parsed-response :response-size)
-          (getf parsed-response :rcode)
+(defun describe-response (parsed-response raw-response)
+  (format t "Received ~D byte response with RCode ~@(~A~), qname ~A, qtype ~A~%"
+          (length raw-response)
+          (dns-rcode (rcode (header parsed-response)))
           ;; Is the extra nesting in QUESTION-SECTION needed?
-          (when (first (getf parsed-response :question-section))
-            (getf (first (getf parsed-response :question-section)) :qname))
-          (when (first (getf parsed-response :question-section))
-            (getf (first (getf parsed-response :question-section)) :qtype)))
-  (loop for rr in (concatenate 'list (getf parsed-response :answer-section)
-                                     (getf parsed-response :record-section)
-                                     (getf parsed-response :additional-section))
-        do (format t "~S ~S ~S ~S ~S~%" (getf rr :name) (getf rr :class)
-                   (getf rr :type) (getf rr :ttl) (getf rr :rdata))))
+          (when (first (questions parsed-response))
+            (to-string (qname (first (questions parsed-response)))))
+          (when (first (questions parsed-response))
+            (dns-type (qtype (first (questions parsed-response))))))
+  (loop for rr in (concatenate 'list (answers parsed-response)
+                                     (records parsed-response)
+                                     (additional parsed-response))
+        do (format t "~A ~A ~A ~D ~S~%" (to-string (name rr))
+                   (dns-class (rclass rr)) (dns-type (rtype rr)) (ttl rr)
+                   (rdata rr))))
 
 
 ;;; ## Main Program
@@ -50,10 +51,13 @@
         (dt (third (argv)))
         (server (fourth (argv)))
         res)
+    (unless dn
+      (format t "Usage: tdig DOMAIN TYPE NAMESERVER~%")
+      (sb-ext:exit :code 1))
     (when *verbose*
       (format *debug-io* "dn=~S~%dt=~S~%server=~S~%" dn dt server))
-    (setf res (get-response dn :host server :port 53 :dns-type dt))
+    (setf res (get-response dn :host server :port 53 :dns-type (parse-integer dt)))
     (when *verbose*
-      (format *debug-io* "~S" (parse-dns-message res)))
-    (describe-response (parse-dns-message res)))
+      (format *debug-io* "~S~%" (make-dns-message res)))
+    (describe-response (make-dns-message res) res))
   (quit))
