@@ -2,7 +2,9 @@
 ;;;;-
 ;;;; # tdig
 ;;;;
-;;;; Usage: `sbcl --noinform --load tdig.lisp --eval "(main)" [ARG1] [ARG2] ...
+;;;; Usage: `sbcl --noinform --load tdig.lisp --eval "(main)"
+;;;;
+;;;; Create binary: `sbcl --load tdig.lisp --eval "(compile-tdig)"
 ;;;;
 ;;;; Inspiration: <https://powerdns.org/hello-dns/tdns/README.md.html>
 
@@ -23,6 +25,10 @@
       #+lispworks system:*line-arguments-list*
       #+sbcl *posix-argv*
       nil))
+
+
+(defun compile-tdig ()
+  (save-lisp-and-die "tdig" :toplevel 'main :executable t))
 
 
 (defun describe-response (parsed-response raw-response)
