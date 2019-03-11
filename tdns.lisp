@@ -41,104 +41,80 @@
   (exit))
 
 
-;;; ## System Class Methods
+;;; ## DNS Types
 ;;;
-;;; These are methods for classes that already exist in Common Lisp, so don't
-;;; go hunting around the Hello DNS sources looking for the, for example,
-;;; INTEGER class.
+;;; Conversion between integers and something readable for DNS class, opcode,
+;;; rcode and type.
+;;;
+;;; We just bluntly dump everything in a hash table for now.
 
-;; - https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml
-;;   - winging it here
-(defmethod dns-class ((class integer))
-  (case class
-    (  1 :in)
-    (  3 :ch)
-    (otherwise nil)))
-
-
-(defmethod dns-opcode ((opcode integer))
-  (case opcode
-    (0 :query)
-    (2 :status)
-    (4 :notify)
-    (5 :update)
-    (otherwise nil)))
+(defun make-dns-hash-table (integer-keyword-values)
+  (let ((ht (make-hash-table)))
+    (loop for (integer keyword) in integer-keyword-values
+          do (setf (gethash integer ht) keyword
+                   (gethash keyword ht) integer))
+    ht))
 
 
-(defmethod dns-test ((opcode integer))
-  (case opcode
-    (0 :query)
-    (2 :status)
-    (4 :notify)
-    (5 :update)
-    (otherwise nil)))
+(defparameter dns-class-hash-table
+  (make-dns-hash-table '((  1 :in)
+                         (  3 :ch))))
+
+(defun dns-class (integer-or-keyword)
+  (gethash integer-or-keyword dns-class-hash-table))
 
 
-(defmethod dns-rcode ((rcode integer))
-  (case rcode
-    ( 0 :noerror)
-    ( 1 :formerr)
-    ( 2 :servfail)
-    ( 3 :nxdomain)
-    ( 4 :notimp)
-    ( 5 :refused)
-    ( 9 :notauth)
-    (16 :badvers)
-    (otherwise nil)))
+(defparameter dns-opcode-hash-table
+  (make-dns-hash-table '((0 :query)
+                         (2 :status)
+                         (4 :notify)
+                         (5 :update))))
+
+(defun dns-opcode (integer-or-keyword)
+  (gethash integer-or-keyword dns-opcode-hash-table))
 
 
-(defmethod dns-type ((type integer))
-  (case type
-    ;; resource records
-    (    1 :a)
-    (    2 :ns)
-    (    5 :cname)
-    (    6 :soa)
-    (   12 :ptr)
-    (   15 :mx)
-    (   16 :txt)
-    (   28 :aaaa)
-    (   33 :srv)
-    (   35 :naptr)
-    (   43 :ds)
-    (   46 :rrsig)
-    (   47 :nsec)
-    (   48 :dnskey)
-    (   50 :nsec3)
-    ;; other types and pseudo resource records
-    (   41 :opt)
-    (  251 :ixfr)
-    (  252 :axfr)
-    (  255 :any)
-    (  257 :caa)
-    (otherwise nil)))
+(defparameter dns-rcode-hash-table
+  (make-dns-hash-table '(( 0 :noerror)
+                         ( 1 :formerr)
+                         ( 2 :servfail)
+                         ( 3 :nxdomain)
+                         ( 4 :notimp)
+                         ( 5 :refused)
+                         ( 9 :notauth)
+                         (16 :badvers))))
 
-;; Ok, this repetition needs a macro or a library.
-(defmethod dns-type ((type symbol))
-  (case type
-    ;; resource records
-    (:a       1)
-    (:ns      2)
-    (:cname   5)
-    (:soa     6)
-    (:ptr    12)
-    (:mx     15)
-    (:txt    16)
-    (:aaaa   28)
-    (:srv    33)
-    (:naptr  35)
-    (:ds     43)
-    (:rrsig  46)
-    (:nsec   47)
-    (:dnskey 48)
-    (:nsec3  50)
-    ;; other types and pseudo resource records
-    (:opt    41)
-    (:ixfr  251)
-    (:axfr  252)
-    (:any   255)
-    (:caa   257)
-    (otherwise nil)))
+(defun dns-rcode (integer-or-keyword)
+  (gethash integer-or-keyword dns-rcode-hash-table))
+
+
+
+(defparameter dns-type-hash-table
+  (make-dns-hash-table '(;; resource records
+                         (    1 :a)
+                         (    2 :ns)
+                         (    5 :cname)
+                         (    6 :soa)
+                         (   12 :ptr)
+                         (   15 :mx)
+                         (   16 :txt)
+                         (   28 :aaaa)
+                         (   33 :srv)
+                         (   35 :naptr)
+                         (   43 :ds)
+                         (   46 :rrsig)
+                         (   47 :nsec)
+                         (   48 :dnskey)
+                         (   50 :nsec3)
+                         ;; other types and pseudo resource records
+                         (   41 :opt)
+                         (  251 :ixfr)
+                         (  252 :axfr)
+                         (  255 :any)
+                         (  257 :caa))))
+
+(defun dns-type (integer-or-keyword)
+  (gethash integer-or-keyword dns-type-hash-table))
 
 
 ;;; ## Classes
