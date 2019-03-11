@@ -60,6 +60,14 @@
   (gethash integer-or-keyword dns-opcode-hash-table))
 
 
+(defparameter dns-qr-hash-table
+  (make-dns-hash-table '((0 :query)
+                         (1 :response))))
+
+(defun dns-qr (integer-or-keyword)
+  (gethash integer-or-keyword dns-qr-hash-table))
+
+
 (defparameter dns-rcode-hash-table
   (make-dns-hash-table '(( 0 :noerror)
                          ( 1 :formerr)
@@ -72,7 +80,6 @@
 
 (defun dns-rcode (integer-or-keyword)
   (gethash integer-or-keyword dns-rcode-hash-table))
-
 
 
 (defparameter dns-type-hash-table
@@ -146,40 +153,22 @@
 
 
 ;; https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml
+;;
+;; This is for printing an object readably.  To see the raw contents, use
+;; `(describe object)`.
 (defmethod print-object ((obj dns-header) stream)
   (print-unreadable-object (obj stream :type t)
     (format stream "ID=~D QR=~A OPCODE=~A AA=~S TC=~S RD=~S RA=~S Z=~D ~
                     RCODE=~A QDCOUNT=~D ANCOUNT=~D NSCOUNT=~D ARCOUNT=~D"
             (id obj)
-            (if (= 0 (qr obj))
-                "QUERY"
-                "RESPONSE")
-            (case (opcode obj)
-              (0 "QUERY")
-              (1 "IQUERY")
-              (2 "STATUS")
-              (3 "Unassigned")
-              (4 "NOTIFY")
-              (5 "UPDATE")
-              (otherwise (format nil"Unassigned(~D)" (opcode obj))))
+            (dns-qr (qr obj))
+            (dns-opcode (opcode obj))
             (= 1 (aa obj))
             (= 1 (tc obj))
             (= 1 (rd obj))
             (= 1 (ra obj))
             (z obj)
-            (case (rcode obj)
-              ( 0 "NoError")
-              ( 1 "FormatErr")
-              ( 2 "ServFail")
-              ( 3 "NXDomain")
-              ( 4 "NotImp")
-              ( 5 "Refused")
-              ( 6 "YXDomain")
-              ( 7 "YXRRSet")
-              ( 8 "NXRRSet")
-              ( 9 "NotAuth")
-              (10 "NotZone")
-              (otherwise (format nil "Unassigned(~D)" (rcode obj))))
+            (dns-rcode (rcode obj))
             (qdcount obj)
             (ancount obj)
             (nscount obj)
@@ -258,7 +247,7 @@
 ;;; ### dns-name
 
 (defclass dns-name ()
-  ((name :initarg :name :reader name :type (vector dns-label)
+  ((name :initarg :name :reader name :type (vector dns-label)  ; why not use a list?
          :initform (error "Must supply :NAME argument to DNS-NAME class."))))
 
 
