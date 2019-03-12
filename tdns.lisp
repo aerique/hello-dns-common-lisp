@@ -485,13 +485,6 @@
 ;;
 ;; - <https://tools.ietf.org/html/rfc1035>
 ;;
-;; Example usage:
-;;
-;; - `(get-response (getf (first *hints*) :address)
-;;                  (getf (first *hints*) :port) "www.google.com" nil)`
-;; - `(get-response (getf (first *hints*) :address)
-;;                  (getf (first *hints*) :port) "." nil)`
-;;
 (defun get-response (dns-name &key (host "9.9.9.9") (port 53) (dns-type "A"))
   "Returns the raw buffer when querying HOST for DNS-NAME (with DNS-TYPE).
   HOST must be a string, for example: \"9.9.9.9\".

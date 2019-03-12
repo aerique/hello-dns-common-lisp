@@ -6,9 +6,17 @@ I'm having a very hard time to find the right balance between staying
 close to the original C++ Hello DNS source and being lispy.  This means
 the source currently looks a little schizophrenic.
 
-## Branches
+## Known Issues
 
-### `feature/do-not-convert-keywords`
+- DNS Tree and Compression: https://powerdns.org/hello-dns/tdns/README.md.html#parsingandgeneratingdnsmessages/dnsmessagewriter/compression
+    - We do not do this yet since I do not grasp the DNS Tree and why
+      this makes everything easier yet.
+
+## Branch Info
+
+- branch: `feature/keywords-fuck-yeah`
+
+*below is outdated, to be updated:*
 
 This branch does not convert bytes / bits / integers in a DNS message to
 meaningful keywords in Common Lisp.  While the latter makes debugging
