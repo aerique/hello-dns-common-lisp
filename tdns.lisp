@@ -23,8 +23,6 @@
 (defun int-to-16bit (a &key b) (declare (ignore a b)))
 (defun int-to-32bit (a &key b) (declare (ignore a b)))
 (defun parse-dns-name (a &optional b) (declare (ignore a b)))
-(defun serialize-question-section (a) (declare (ignore a)))
-(defun serialize-resource-record (a) (declare (ignore a)))
 
 
 ;;; ## DNS Types
@@ -481,21 +479,6 @@
             (ash (logand integer #b00000000000000001111111100000000)  -8)
             (ash (logand integer #b0000000011111111000000000000000)  -16)
             (ash         integer                                     -24))))
-
-
-(defun serialize-question-section (question-section)
-  (append (serialize (getf question-section :qname))
-          (int-to-16bit (dns-type (getf question-section :qtype)))
-          (int-to-16bit (dns-class (getf question-section :qclass)))))
-
-
-(defun serialize-resource-record (resource-record)
-  (append (serialize (getf resource-record :name))
-          (int-to-16bit (dns-type (getf resource-record :type)))
-          (int-to-16bit (dns-class (getf resource-record :class)))
-          (int-to-32bit (getf resource-record :ttl))
-          (int-to-16bit (getf resource-record :rdlength))
-          (coerce (getf resource-record :rdata) 'list)))
 
 
 ;; Resources:
