@@ -27,10 +27,6 @@
       nil))
 
 
-(defun compile-tdig ()
-  (save-lisp-and-die "tdig" :toplevel 'main :executable t))
-
-
 (defun describe-response (parsed-response raw-response)
   (format t "Received ~D byte response with RCode ~@(~A~), qname ~A, qtype ~A~%"
           (length raw-response)
@@ -67,3 +63,7 @@
       (format *debug-io* "~S~%" (make-dns-message res)))
     (describe-response (make-dns-message res) res))
   (quit))
+
+
+(defun compile-tdig ()
+  (save-lisp-and-die "tdig" :toplevel #'main :executable t))

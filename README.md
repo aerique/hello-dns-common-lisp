@@ -8,6 +8,7 @@ the source currently looks a little schizophrenic.
 
 ## Known Issues
 
+- SBCL focused, we should use compatibility libs
 - DNS Tree and Compression: https://powerdns.org/hello-dns/tdns/README.md.html#parsingandgeneratingdnsmessages/dnsmessagewriter/compression
     - We do not do this yet since I do not grasp the DNS Tree and why
       this makes everything easier yet.
