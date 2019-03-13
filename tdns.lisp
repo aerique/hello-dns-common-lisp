@@ -9,8 +9,11 @@
 
 ;; [usocket](https://github.com/usocket/usocket#introduction) is a
 ;; socket library for many Common Lisp implementations.
-(ql:quickload :usocket        #|:silent t|#)
-(ql:quickload :usocket-server #|:silent t|#)
+;;
+;; `:silent t` makes loading the libs more quiet so that running f.e.
+;; `bin/tdig` looks nicer but it can hide problems
+(ql:quickload :usocket        :silent t)
+(ql:quickload :usocket-server :silent t)
 
 
 ;;; ## Globals

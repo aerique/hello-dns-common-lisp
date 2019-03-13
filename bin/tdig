@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# https://stackoverflow.com/questions/255898/how-to-iterate-over-arguments-in-a-bash-script/255913#255913
+sbcl --noinform --load tdig.lisp --eval "(main)" "$@"
