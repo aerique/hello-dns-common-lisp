@@ -15,6 +15,8 @@
 (ql:quickload :usocket        :silent t)
 (ql:quickload :usocket-server :silent t)
 
+(load "common.lisp")
+
 
 ;;; ## Globals
 
@@ -23,8 +25,6 @@
 
 ;; Silence compiler about undefined functions.
 ;; (Common Lisp has many warts: this is one of them.)
-(defun int-to-16bit (a &key b) (declare (ignore a b)))
-(defun int-to-32bit (a &key b) (declare (ignore a b)))
 (defun parse-dns-name (a &optional b) (declare (ignore a b)))
 
 
@@ -481,31 +481,6 @@
           append (serialize rr))))
 
 
-;;; Functions
-
-;; ASH: arithmetic (binary) shift towards most significant bit
-;; XXX this hasn't actually been tested with anything else than 1
-(defun int-to-16bit (integer &key (big-endian t))
-  (if big-endian
-      (list (ash    integer -8)
-            (logand integer #b0000000011111111))
-      ;; little-endian
-      (list (logand integer #b0000000011111111)
-            (ash    integer -8))))
-
-
-;; XXX this hasn't actually been tested with anything else than 1
-(defun int-to-32bit (integer &key (big-endian t))
-  (if big-endian
-      (list (ash         integer                                     -24)
-            (ash (logand integer #b0000000011111111000000000000000)  -16)
-            (ash (logand integer #b00000000000000001111111100000000)  -8)
-                 (logand integer #b00000000000000000000000011111111))
-      ;; little-endian
-      (list      (logand integer #b00000000000000000000000011111111)
-            (ash (logand integer #b00000000000000001111111100000000)  -8)
-            (ash (logand integer #b0000000011111111000000000000000)  -16)
-            (ash         integer                                     -24))))
 ;;; ### Resource Record Classes
 
 ;;; ### dns-rr-a
@@ -635,6 +610,7 @@
   ())
 
 
+;;; ## Functions
 
 ;; Resources:
 ;;
