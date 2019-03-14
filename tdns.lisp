@@ -353,11 +353,9 @@
 
 (defmethod print-object ((obj dns-resource-record) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "NAME=~A TYPE=~A CLASS=~A TTL=~D"
+    (format stream "NAME=~A TYPE=~A"
             (to-string (name obj))
-            (dns-type (rtype obj))
-            (dns-class (rclass obj))
-            (ttl obj))))
+            (dns-type (rtype obj)))))
 
 
 (defmethod serialize ((obj dns-resource-record))
@@ -411,10 +409,11 @@
 ;; Don't really know what to print here.
 (defmethod print-object ((obj dns-message) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "ID=~D QNAME=~A"
+    (format stream "ID=~D QR=~A QNAME=~A"
             (id (header obj))
+            (dns-qr (qr (header obj)))
             (when (questions obj)
-              (qname (first (questions obj)))))))
+              (to-string (qname (first (questions obj))))))))
 
 
 (defun make-dns-message (dns-message)
