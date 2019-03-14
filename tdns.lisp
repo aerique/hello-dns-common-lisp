@@ -502,6 +502,14 @@
   ())
 
 
+(defmethod print-object ((obj dns-rr-aaaa) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "NAME=~A TYPE=~A IPv6=~A"
+            (to-string (name obj))
+            (dns-type (rtype obj))
+            (ipv6-to-str (rdata obj)))))
+
+
 ;;; ### dns-rr-any
 
 (defclass dns-rr-any (dns-resource-record)
