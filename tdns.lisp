@@ -369,6 +369,31 @@
               (coerce (rdata obj) 'list))))
 
 
+(defun class-for-rr (rr-type)
+  (case rr-type
+    (:a        'dns-rr-a)
+    (:aaaa     'dns-rr-aaaa)
+    (:any      'dns-rr-any)
+    (:axfr     'dns-rr-axfr)
+    (:caa      'dns-rr-caa)
+    (:cname    'dns-rr-cname)
+    (:dnskey   'dns-rr-dnskey)
+    (:ds       'dns-rr-ds)
+    (:ixfr     'dns-rr-ixfr)
+    (:mx       'dns-rr-mx)
+    (:naptr    'dns-rr-naptr)
+    (:ns       'dns-rr-ns)
+    (:nsec     'dns-rr-nsec)
+    (:nsec3    'dns-rr-nsec3)
+    (:opt      'dns-rr-opt)
+    (:ptr      'dns-rr-ptr)
+    (:rrsig    'dns-rr-rrsig)
+    (:soa      'dns-rr-soa)
+    (:srv      'dns-rr-srv)
+    (:txt      'dns-rr-txt)
+    (otherwise 'dns-resource-record)))
+
+
 (defun make-dns-resource-record (dns-message &optional (offset 12))
   (multiple-value-bind (name new-offset)
       (parse-dns-name dns-message offset)
@@ -382,7 +407,7 @@
                              (elt dns-message (+ new-offset 7))))
            (rdlength (+ (ash (elt dns-message (+ new-offset 8))  8)
                              (elt dns-message (+ new-offset 9)))))
-      (make-instance 'dns-resource-record :name (make-dns-name name)
+      (make-instance (class-for-rr (dns-type type)) :name (make-dns-name name)
                      :rtype type :rclass class :ttl ttl :rdlength rdlength
                      :rdata (if (and (= type 2)
                                      (= class 1))
@@ -481,6 +506,134 @@
             (ash (logand integer #b00000000000000001111111100000000)  -8)
             (ash (logand integer #b0000000011111111000000000000000)  -16)
             (ash         integer                                     -24))))
+;;; ### Resource Record Classes
+
+;;; ### dns-rr-a
+
+(defclass dns-rr-a (dns-resource-record)
+  ())
+
+
+(defmethod print-object ((obj dns-rr-a) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "NAME=~A TYPE=~A IPv4=~A"
+            (to-string (name obj))
+            (dns-type (rtype obj))
+            (ipv4-to-str (rdata obj)))))
+
+;;; ### dns-rr-aaaa
+
+(defclass dns-rr-aaaa (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-any
+
+(defclass dns-rr-any (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-axfr
+
+(defclass dns-rr-axfr (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-caa
+
+(defclass dns-rr-caa (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-cname
+
+(defclass dns-rr-cname (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-dnskey
+
+(defclass dns-rr-dnskey (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-ds
+
+(defclass dns-rr-ds (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-ixfr
+
+(defclass dns-rr-ixfr (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-mx
+
+(defclass dns-rr-mx (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-naptr
+
+(defclass dns-rr-naptr (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-ns
+
+(defclass dns-rr-ns (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-nsec
+
+(defclass dns-rr-nsec (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-nsec3
+
+(defclass dns-rr-nsec3 (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-opt
+
+(defclass dns-rr-opt (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-ptr
+
+(defclass dns-rr-ptr (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-rrsig
+
+(defclass dns-rr-rrsig (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-soa
+
+(defclass dns-rr-soa (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-srv
+
+(defclass dns-rr-srv (dns-resource-record)
+  ())
+
+
+;;; ### dns-rr-txt
+
+(defclass dns-rr-txt (dns-resource-record)
+  ())
+
 
 
 ;; Resources:
