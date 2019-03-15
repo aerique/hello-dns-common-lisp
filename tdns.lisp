@@ -534,6 +534,13 @@
   ())
 
 
+(defmethod print-object ((obj dns-rr-cname) stream)
+  (print-unreadable-object (obj stream :type t)
+    (format stream "NAME=~A CNAME=~A"
+            (to-string (name obj))
+            (to-string (make-dns-name (parse-dns-name (rdata obj)))))))
+
+
 ;;; ### dns-rr-dnskey
 
 (defclass dns-rr-dnskey (dns-resource-record)
