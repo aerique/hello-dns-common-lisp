@@ -496,6 +496,7 @@
             (to-string (name obj))
             (ipv4-to-str (rdata obj)))))
 
+
 ;;; ### dns-rr-aaaa
 
 (defclass dns-rr-aaaa (dns-resource-record)
