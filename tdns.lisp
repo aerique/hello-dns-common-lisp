@@ -252,9 +252,15 @@
          :initform (error "Must supply :NAME argument to DNS-NAME class."))))
 
 
+(defmethod to-string ((obj dns-name))
+  (format nil "~{~A~^.~}." (loop for label across (name obj)
+                                collect (to-string label))))
+
+
 (defmethod print-object ((obj dns-name) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "~{~A~^ ~}" (coerce (name obj) 'list))))
+    ;(format stream "~{~A~^ ~}" (coerce (name obj) 'list))))
+    (format stream "~A" (to-string obj))))
 
 
 (defmethod make-dns-name ((lst list))
@@ -288,11 +294,6 @@
         for label across (name obj)
         do (setf result (concatenate 'vector result (serialize label)))
         finally (return (concatenate 'list result #(0)))))
-
-
-(defmethod to-string ((obj dns-name))
-  (format nil "~{~A~^.~}." (loop for label across (name obj)
-                                collect (to-string label))))
 
 
 ;;; ### dns-question-section
@@ -491,9 +492,8 @@
 
 (defmethod print-object ((obj dns-rr-a) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "NAME=~A TYPE=~A IPv4=~A"
+    (format stream "NAME=~A IPv4=~A"
             (to-string (name obj))
-            (dns-type (rtype obj))
             (ipv4-to-str (rdata obj)))))
 
 ;;; ### dns-rr-aaaa
@@ -504,9 +504,8 @@
 
 (defmethod print-object ((obj dns-rr-aaaa) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "NAME=~A TYPE=~A IPv6=~A"
+    (format stream "NAME=~A IPv6=~A"
             (to-string (name obj))
-            (dns-type (rtype obj))
             (ipv6-to-str (rdata obj)))))
 
 
