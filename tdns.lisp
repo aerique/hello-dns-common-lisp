@@ -306,8 +306,9 @@
   ((qname  :initarg :qname  :reader qname  :type dns-name)
    (qtype  :initarg :qtype  :reader qtype  :type (integer 0 65535))
    (qclass :initarg :qclass :reader qclass :type (integer 0 65535))
-   (raw    :initarg :raw    :reader raw    :type (vector (unsigned-byte 8))
-           :initform nil)))
+   (offset :initarg :offset :reader offset :type integer)  ; fixnum?
+   (size   :initarg :size   :reader size   :type integer)  ; fixnum?
+   (dns-message :initform nil :accessor dns-message :type dns-message)))
 
 
 (defmethod print-object ((obj dns-question-section) stream)
@@ -319,9 +320,7 @@
 
 
 (defmethod serialize ((obj dns-question-section))
-  (if (raw obj)
-      (coerce (raw obj) 'list)
-      (append (serialize (qname obj))
+  (append (serialize (qname obj))
           (int-to-2-bytes (qtype obj))
           (int-to-2-bytes (qtype obj))))
 
@@ -355,8 +354,9 @@
    (ttl      :initarg :ttl      :reader ttl      :type (integer 0 4294967295))
    (rdlength :initarg :rdlength :reader rdlength :type (integer 0 65535))
    (rdata    :initarg :rdata    :reader rdata    :type (vector (unsigned-byte 8)))
-   (raw      :initarg :raw      :reader raw      :type (vector (unsigned-byte 8))
-             :initform nil)))
+   (offset   :initarg :offset   :reader offset   :type integer)  ; fixnum?
+   (size     :initarg :size     :reader size     :type integer)  ; fixnum?
+   (dns-message :initform nil :accessor dns-message :type dns-message)))
 
 
 (defmethod print-object ((obj dns-resource-record) stream)
@@ -367,14 +367,12 @@
 
 
 (defmethod serialize ((obj dns-resource-record))
-  (if (raw obj)
-      (coerce (raw obj) 'list)
-      (append (serialize (name obj))
-              (coerce (rdata obj) 'list))))
+  (append (serialize (name obj))
           (int-to-2-bytes (rtype obj))
           (int-to-2-bytes (rclass obj))
           (int-to-4-bytes (ttl obj))
           (int-to-2-bytes (rdlength obj))
+          (coerce (rdata obj) 'list)))
 
 
 (defun class-for-rr (rr-type)
@@ -426,21 +424,29 @@
                                 (parse-dns-name dns-message (+ new-offset 10))
                                 (subseq dns-message (+ new-offset 10)
                                         (+ new-offset 10 rdlength)))
-                     :raw (subseq dns-message offset (+ new-offset 10 rdlength))))))
+                     :offset offset
+                     :size (- (+ new-offset 10 rdlength) offset)))))
 
 
 ;;; ### dns-message
 
 (defclass dns-message ()
-  ((header     :initarg :header     :reader header     :type dns-header)
-   (questions  :initarg :questions  :reader questions  :type (list dns-question-section)
-               :initform nil)
-   (answers    :initarg :answers    :reader answers    :type (list dns-resource-record)
-               :initform nil)
-   (records    :initarg :records    :reader records    :type (list dns-resource-record)
-               :initform nil)
-   (additional :initarg :additional :reader additional :type (list dns-resource-record)
-               :initform nil)))
+  ((header     :initarg :header                   :reader header
+               :type dns-header)
+   (questions  :initarg :questions  :initform nil :reader questions
+               :type (list dns-question-section))
+   (answers    :initarg :answers    :initform nil :reader answers
+               :type (list dns-resource-record))
+   (records    :initarg :records    :initform nil :reader records
+               :type (list dns-resource-record))
+   (additional :initarg :additional :initform nil :reader additional
+               :type (list dns-resource-record))
+   ;; So now we're storing the whole raw payload and the separate raw
+   ;; question and resource record sections (but not the header!).
+   ;; Would just the whole raw packet here suffice?
+   ;; (We need the whole raw payload to resolve name compression.)
+   (raw        :initarg :raw        :initform nil :reader raw
+               :type (vector (unsigned-byte 8)))))
 
 
 ;; Don't really know what to print here.
@@ -454,30 +460,36 @@
 
 
 (defun make-dns-message (dns-message)
-  (let ((offset 12)
-        (header (make-dns-header dns-message)))
-    (make-instance 'dns-message
-                   :header header
-                   :questions (loop for i from 0 below (qdcount header)
-                                    for qs = (make-dns-question-section
-                                              dns-message offset)
-                                    collect qs
-                                    do (incf offset (length (raw qs))))
-                   :answers (loop for i from 0 below (ancount header)
+  (let* ((offset 12)
+         (header (make-dns-header dns-message))
+         (msg (make-instance 'dns-message
+                :header header
+                :questions (loop for i from 0 below (qdcount header)
+                                 for qs = (make-dns-question-section
+                                           dns-message offset)
+                                 collect qs
+                                 do (incf offset (size qs)))
+                :answers (loop for i from 0 below (ancount header)
+                               for rr = (make-dns-resource-record
+                                         dns-message offset)
+                               collect rr
+                               do (incf offset (size rr)))
+                :records (loop for i from 0 below (nscount header)
+                               for rr = (make-dns-resource-record
+                                         dns-message offset)
+                               collect rr
+                               do (incf offset (size rr)))
+                :additional (loop for i from 0 below (arcount header)
                                   for rr = (make-dns-resource-record
                                             dns-message offset)
                                   collect rr
-                                  do (incf offset (length (raw rr))))
-                   :records (loop for i from 0 below (nscount header)
-                                  for rr = (make-dns-resource-record
-                                            dns-message offset)
-                                  collect rr
-                                  do (incf offset (length (raw rr))))
-                   :additional (loop for i from 0 below (arcount header)
-                                     for rr = (make-dns-resource-record
-                                               dns-message offset)
-                                     collect rr
-                                     do (incf offset (length (raw rr)))))))
+                                  do (incf offset (size rr)))
+                :raw dns-message)))
+    ;; Store reference to `dns-message` instance in sub-records.
+    (loop for record in (append (questions msg) (answers msg) (records msg)
+                                (additional msg))
+          do (setf (dns-message record) msg))
+    msg))
 
 
 (defmethod serialize ((obj dns-message))
@@ -494,6 +506,11 @@
 
 
 ;;; ### Resource Record Classes
+;;;
+;;; TODO we either need to store the custom info (IPv4, IPv6, SOA, etc.) in
+;;;      RDATA or (my current preference) add methods to retrieve them.
+;;;      Maybe we just need to have the `rdata` call return the custom data.
+;;;      Maybe not.
 
 ;;; ### dns-rr-a
 
@@ -549,6 +566,7 @@
   (print-unreadable-object (obj stream :type t)
     (format stream "NAME=~A CNAME=~A"
             (to-string (name obj))
+            ;; XXX this will fail with compressed names (possible in CNAME?)
             (to-string (make-dns-name (parse-dns-name (rdata obj)))))))
 
 
