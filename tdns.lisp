@@ -642,6 +642,47 @@
   ())
 
 
+;; Oh boy, this is fugly!
+(defmethod print-object ((obj dns-rr-soa) stream)
+  (multiple-value-bind (mname rname-offset)
+      (parse-dns-name (raw (dns-message obj))
+                      (+ (offset obj) (- (size obj) (rdlength obj))))
+    (multiple-value-bind (rname serial-offset)
+        (parse-dns-name (raw (dns-message obj)) rname-offset)
+      (print-unreadable-object (obj stream :type t)
+        (format stream "NAME=~A MNAME=~A RNAME=~A SERIAL=~D REFRESH=~D ~
+                        RETRY=~D EXPIRE=~D MINIMUM=~D"
+                (to-string (name obj))
+                (to-string (make-dns-name mname))
+                (to-string (make-dns-name rname))
+                ;; Why don't we have `32bit-to-int` yet?!
+                (4-bytes-to-int
+                 (list (elt (raw (dns-message obj)) (+ serial-offset  4))
+                       (elt (raw (dns-message obj)) (+ serial-offset  5))
+                       (elt (raw (dns-message obj)) (+ serial-offset  6))
+                       (elt (raw (dns-message obj)) (+ serial-offset  7))))
+                (4-bytes-to-int
+                 (list (elt (raw (dns-message obj)) (+ serial-offset  8))
+                       (elt (raw (dns-message obj)) (+ serial-offset  9))
+                       (elt (raw (dns-message obj)) (+ serial-offset 10))
+                       (elt (raw (dns-message obj)) (+ serial-offset 11))))
+                (4-bytes-to-int
+                 (list (elt (raw (dns-message obj)) (+ serial-offset 12))
+                       (elt (raw (dns-message obj)) (+ serial-offset 13))
+                       (elt (raw (dns-message obj)) (+ serial-offset 14))
+                       (elt (raw (dns-message obj)) (+ serial-offset 15))))
+                (4-bytes-to-int
+                 (list (elt (raw (dns-message obj)) (+ serial-offset 16))
+                       (elt (raw (dns-message obj)) (+ serial-offset 17))
+                       (elt (raw (dns-message obj)) (+ serial-offset 18))
+                       (elt (raw (dns-message obj)) (+ serial-offset 19))))
+                (4-bytes-to-int
+                 (list (elt (raw (dns-message obj)) (+ serial-offset 20))
+                       (elt (raw (dns-message obj)) (+ serial-offset 21))
+                       (elt (raw (dns-message obj)) (+ serial-offset 22))
+                       (elt (raw (dns-message obj)) (+ serial-offset 23)))))))))
+
+
 ;;; ### dns-rr-srv
 
 (defclass dns-rr-srv (dns-resource-record)
