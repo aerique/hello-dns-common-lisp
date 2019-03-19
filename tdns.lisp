@@ -203,10 +203,14 @@
                :ra    (ash (logand (elt dns-message 3) #b10000000) -7)
                :z     (ash (logand (elt dns-message 3) #b01110000) -4)
                :rcode      (logand (elt dns-message 3) #b00001111)
-               :qdcount (+ (ash (elt dns-message  4) 8) (elt dns-message  5))
-               :ancount (+ (ash (elt dns-message  6) 8) (elt dns-message  7))
-               :nscount (+ (ash (elt dns-message  8) 8) (elt dns-message  9))
-               :arcount (+ (ash (elt dns-message 10) 8) (elt dns-message 11))))
+               :qdcount (2-bytes-to-int (list (elt dns-message 4)
+                                              (elt dns-message  5)))
+               :ancount (2-bytes-to-int (list (elt dns-message 6)
+                                              (elt dns-message  7)))
+               :nscount (2-bytes-to-int (list (elt dns-message 8)
+                                              (elt dns-message  9)))
+               :arcount (2-bytes-to-int (list (elt dns-message 10)
+                                              (elt dns-message 11)))))
 
 
 ;;; ### dns-label
@@ -327,11 +331,14 @@
       (parse-dns-name dns-message offset)
     (make-instance 'dns-question-section
                    :qname (make-dns-name qname)
-                   :qtype  (+ (ash (elt dns-message (+ new-offset 0)) 8)
-                                   (elt dns-message (+ new-offset 1)))
-                   :qclass (+ (ash (elt dns-message (+ new-offset 2)) 8)
-                                   (elt dns-message (+ new-offset 3)))
-                   :raw (subseq dns-message offset (+ new-offset 4)))))
+                   :qtype  (2-bytes-to-int
+                            (list (elt dns-message (+ new-offset 0))
+                                  (elt dns-message (+ new-offset 1))))
+                   :qclass (2-bytes-to-int
+                            (list (elt dns-message (+ new-offset 2))
+                                  (elt dns-message (+ new-offset 3))))
+                   :offset offset
+                   :size (- (+ new-offset 4) offset))))
 
 
 ;;; ### dns-resource-record
@@ -398,16 +405,20 @@
 (defun make-dns-resource-record (dns-message &optional (offset 12))
   (multiple-value-bind (name new-offset)
       (parse-dns-name dns-message offset)
-    (let* ((type     (+ (ash (elt dns-message (+ new-offset 0))  8)
-                             (elt dns-message (+ new-offset 1))))
-           (class    (+ (ash (elt dns-message (+ new-offset 2))  8)
-                             (elt dns-message (+ new-offset 3))))
-           (ttl      (+ (ash (elt dns-message (+ new-offset 4)) 24)
-                        (ash (elt dns-message (+ new-offset 5)) 16)
-                        (ash (elt dns-message (+ new-offset 6))  8)
-                             (elt dns-message (+ new-offset 7))))
-           (rdlength (+ (ash (elt dns-message (+ new-offset 8))  8)
-                             (elt dns-message (+ new-offset 9)))))
+    (let* ((type     (2-bytes-to-int
+                      (list (elt dns-message (+ new-offset 0))
+                            (elt dns-message (+ new-offset 1)))))
+           (class    (2-bytes-to-int
+                      (list (elt dns-message (+ new-offset 2))
+                            (elt dns-message (+ new-offset 3)))))
+           (ttl      (4-bytes-to-int
+                      (list (elt dns-message (+ new-offset 4))
+                            (elt dns-message (+ new-offset 5))
+                            (elt dns-message (+ new-offset 6))
+                            (elt dns-message (+ new-offset 7)))))
+           (rdlength (2-bytes-to-int
+                      (list (elt dns-message (+ new-offset 8))
+                            (elt dns-message (+ new-offset 9))))))
       (make-instance (class-for-rr (dns-type type)) :name (make-dns-name name)
                      :rtype type :rclass class :ttl ttl :rdlength rdlength
                      :rdata (if (and (= type 2)

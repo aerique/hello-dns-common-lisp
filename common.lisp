@@ -11,6 +11,26 @@
     (dolist (a args) (princ a s))))
 
 
+(defun 2-bytes-to-int (2-bytes &key (big-endian t))
+  (if big-endian
+      (+ (ash (elt 2-bytes 0) 8)
+              (elt 2-bytes 1)  )
+      (+      (elt 2-bytes 0)
+         (ash (elt 2-bytes 1) 8))))
+
+
+(defun 4-bytes-to-int (4-bytes &key (big-endian t))
+  (if big-endian
+      (+ (ash (elt 4-bytes 0) 24)
+         (ash (elt 4-bytes 1) 16)
+         (ash (elt 4-bytes 2)  8)
+              (elt 4-bytes 3)   )
+      (+      (elt 4-bytes 0)
+         (ash (elt 4-bytes 1) 8)
+         (ash (elt 4-bytes 2) 16)
+         (ash (elt 4-bytes 3) 24))))
+
+
 ;; ASH: arithmetic (binary) shift towards most significant bit
 (defun int-to-2-bytes (integer &key (big-endian t))
   (if big-endian
