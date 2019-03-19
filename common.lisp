@@ -12,8 +12,7 @@
 
 
 ;; ASH: arithmetic (binary) shift towards most significant bit
-;; XXX this hasn't actually been tested with anything else than 1
-(defun int-to-16bit (integer &key (big-endian t))
+(defun int-to-2-bytes (integer &key (big-endian t))
   (if big-endian
       (list (ash    integer -8)
             (logand integer #b0000000011111111))
@@ -22,8 +21,7 @@
             (ash    integer -8))))
 
 
-;; XXX this hasn't actually been tested with anything else than 1
-(defun int-to-32bit (integer &key (big-endian t))
+(defun int-to-4-bytes (integer &key (big-endian t))
   (if big-endian
       (list (ash         integer                                     -24)
             (ash (logand integer #b0000000011111111000000000000000)  -16)

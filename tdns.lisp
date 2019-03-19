@@ -177,7 +177,7 @@
 
 
 (defmethod serialize ((obj dns-header))
-  (append (int-to-16bit (id obj))
+  (append (int-to-2-bytes (id obj))
           (list (+ (if (= 1 (qr obj)) 128 0)
                    (ash (opcode obj) 3)
                    (if (= 1 (aa obj))   4 0)
@@ -186,10 +186,10 @@
           (list (+ (if (= 1 (ra obj)) 128 0)
                    (ash (z obj) 4)
                    (rcode obj)))
-          (int-to-16bit (qdcount obj))
-          (int-to-16bit (ancount obj))
-          (int-to-16bit (nscount obj))
-          (int-to-16bit (arcount obj))))
+          (int-to-2-bytes (qdcount obj))
+          (int-to-2-bytes (ancount obj))
+          (int-to-2-bytes (nscount obj))
+          (int-to-2-bytes (arcount obj))))
 
 
 (defun make-dns-header (dns-message)
@@ -318,8 +318,8 @@
   (if (raw obj)
       (coerce (raw obj) 'list)
       (append (serialize (qname obj))
-              (int-to-16bit (qtype obj))
-              (int-to-16bit (qtype obj)))))
+          (int-to-2-bytes (qtype obj))
+          (int-to-2-bytes (qtype obj))))
 
 
 (defun make-dns-question-section (dns-message &optional (offset 12))
@@ -363,11 +363,11 @@
   (if (raw obj)
       (coerce (raw obj) 'list)
       (append (serialize (name obj))
-              (int-to-16bit (rtype obj))
-              (int-to-16bit (rclass obj))
-              (int-to-32bit (ttl obj))
-              (int-to-16bit (rdlength obj))
               (coerce (rdata obj) 'list))))
+          (int-to-2-bytes (rtype obj))
+          (int-to-2-bytes (rclass obj))
+          (int-to-4-bytes (ttl obj))
+          (int-to-2-bytes (rdlength obj))
 
 
 (defun class-for-rr (rr-type)
