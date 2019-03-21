@@ -306,8 +306,8 @@
   ((qname  :initarg :qname  :reader qname  :type dns-name)
    (qtype  :initarg :qtype  :reader qtype  :type (integer 0 65535))
    (qclass :initarg :qclass :reader qclass :type (integer 0 65535))
-   (offset :initarg :offset :reader offset :type integer)  ; fixnum?
-   (size   :initarg :size   :reader size   :type integer)  ; fixnum?
+   (offset :initarg :offset :reader offset :type integer)
+   (size   :initarg :size   :reader size   :type integer)
    (dns-message :initform nil :accessor dns-message :type dns-message)))
 
 
@@ -354,8 +354,8 @@
    (ttl      :initarg :ttl      :reader ttl      :type (integer 0 4294967295))
    (rdlength :initarg :rdlength :reader rdlength :type (integer 0 65535))
    (rdata    :initarg :rdata    :reader rdata    :type (vector (unsigned-byte 8)))
-   (offset   :initarg :offset   :reader offset   :type integer)  ; fixnum?
-   (size     :initarg :size     :reader size     :type integer)  ; fixnum?
+   (offset   :initarg :offset   :reader offset   :type integer)
+   (size     :initarg :size     :reader size     :type integer)
    (dns-message :initform nil :accessor dns-message :type dns-message)))
 
 

@@ -2,8 +2,13 @@
 
 A Common Lisp implementation of [Hello DNS](https://github.com/ahupowerdns/hello-dns/).
 
-I seem to have found an okay level of abstraction for the first Common
-Lisp version of Hello DNS.
+This document focuses on the Common Lisp issues.  Please refer to the
+above link for the Hello DNS documentation and description.
+
+## To Do
+
+- Move RR parsing from `print-object` to object instantiation
+    - (so we'll have `:A` as `rtype` and not `1`
 
 ## Known Issues
 
