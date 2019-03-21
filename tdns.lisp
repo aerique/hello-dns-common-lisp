@@ -159,15 +159,15 @@
 ;; `(describe object)`.
 (defmethod print-object ((obj dns-header) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "ID=~D QR=~A OPCODE=~A AA=~S TC=~S RD=~S RA=~S Z=~D ~
-                    RCODE=~A QDCOUNT=~D ANCOUNT=~D NSCOUNT=~D ARCOUNT=~D"
+    (format stream "#~D ~A OPCODE=~A~A~A~A~A Z=~D RCODE=~A QDCOUNT=~D ~
+                    ANCOUNT=~D NSCOUNT=~D ARCOUNT=~D"
             (id obj)
             (dns-qr (qr obj))
             (dns-opcode (opcode obj))
-            (= 1 (aa obj))
-            (= 1 (tc obj))
-            (= 1 (rd obj))
-            (= 1 (ra obj))
+            (if (= 1 (aa obj)) " AA" "")
+            (if (= 1 (tc obj)) " TC" "")
+            (if (= 1 (rd obj)) " RD" "")
+            (if (= 1 (ra obj)) " RA" "")
             (z obj)
             (dns-rcode (rcode obj))
             (qdcount obj)
@@ -313,10 +313,10 @@
 
 (defmethod print-object ((obj dns-question-section) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "QNAME=~A QTYPE=~A QCLASS=~A"
+    (format stream "~A ~A ~A"
             (to-string (qname obj))
-            (dns-type (qtype obj))
-            (dns-class (qclass obj)))))
+            (dns-class (qclass obj))
+            (dns-type (qtype obj)))))
 
 
 (defmethod serialize ((obj dns-question-section))
@@ -452,11 +452,15 @@
 ;; Don't really know what to print here.
 (defmethod print-object ((obj dns-message) stream)
   (print-unreadable-object (obj stream :type t)
-    (format stream "ID=~D QR=~A QNAME=~A"
+    (format stream "#~D ~A ~A ~A ~A"
             (id (header obj))
             (dns-qr (qr (header obj)))
             (when (questions obj)
-              (to-string (qname (first (questions obj))))))))
+              (to-string (qname (first (questions obj)))))
+            (when (questions obj)
+              (dns-class (qclass (first (questions obj)))))
+            (when (questions obj)
+              (dns-type (qtype (first (questions obj))))))))
 
 
 (defun make-dns-message (dns-message)
