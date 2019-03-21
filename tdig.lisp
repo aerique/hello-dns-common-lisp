@@ -39,9 +39,10 @@
   (loop for rr in (concatenate 'list (answers parsed-response)
                                      (records parsed-response)
                                      (additional parsed-response))
-        do (format t "~A ~A ~A ~D ~S~%" (to-string (name rr))
+        do (format t "- ~A ~A ~A ~D ~S~%  - ~S" (to-string (name rr))
                    (dns-class (rclass rr)) (dns-type (rtype rr)) (ttl rr)
-                   (rdata rr))))
+                   (rdata rr)
+                   rr)))
 
 
 ;;; ## Main Program
