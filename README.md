@@ -1,5 +1,10 @@
 # Hello DNS in Common Lisp
 
+The canonical home page for this project is: https://git.sr.ht/~aerique/hello-dns-common-lisp
+
+(The library is also pushed to GitLab and GitHub but those sites are not
+monitored for support.)
+
 A Common Lisp implementation of [Hello DNS](https://github.com/ahupowerdns/hello-dns/).
 
 This document focuses on the Common Lisp issues.  Please refer to the
