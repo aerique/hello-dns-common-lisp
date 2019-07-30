@@ -598,6 +598,19 @@
   ())
 
 
+(defmethod print-object ((obj dns-rr-mx) stream)
+  (multiple-value-bind (exchange)
+      (parse-dns-name (raw (dns-message obj))
+                      (+ (offset obj) 2))
+    (print-unreadable-object (obj stream :type t)
+      (format stream "NAME=~A PREFERENCE=~A EXCHANGE=~A"
+                (to-string (name obj))
+                (to-string (make-dns-name exchange))
+                (2-bytes-to-int
+                 (list (elt (raw (dns-message obj)) (+ (offset obj) 0))
+                       (elt (raw (dns-message obj)) (+ (offset obj) 1))))))))
+
+
 ;;; ### dns-rr-naptr
 
 (defclass dns-rr-naptr (dns-resource-record)
